@@ -1,0 +1,231 @@
+[
+  {
+    "id": "scenario-a",
+    "name": "Scenario A: Sovereign Infrastructure & Air-Gapped Security",
+    "subtitle": "FinTech / Banking enterprise requiring customer-controlled deployment in private AWS VPC",
+    "isFictionalSample": true,
+    "description": "Fictional regional banking group evaluating lakehouse architectures with strict data custody, self-hosted Kubernetes, and column-level Apache Ranger security.",
+    "input": {
+      "organization": {
+        "companyName": "Apex Financial Services (Fictional)",
+        "industry": "financial_services",
+        "companySize": "enterprise",
+        "userRole": "it_decision_maker",
+        "assessmentGoal": "Evaluate self-hosted lakehouse alternatives to proprietary SaaS warehouses to satisfy data sovereignty requirements."
+      },
+      "environment": {
+        "deployment": "customer_cloud_vpc",
+        "dataSources": ["PostgreSQL Core Banking", "Kafka Transaction Streams", "S3 Data Archives"],
+        "analyticsTools": ["Tableau", "DBeaver SQL"],
+        "dataVolume": "50TB - 200TB",
+        "processingApproach": "Hybrid batch ETL and micro-batch streaming"
+      },
+      "selectedChallenges": [
+        "Infrastructure ownership and sovereign data control requirements",
+        "Data distributed across multiple transactional and analytical systems",
+        "Data access, column masking, and regulatory governance requirements",
+        "Desire to evaluate open technologies to avoid proprietary vendor lock-in"
+      ],
+      "freeTextChallenges": "Our regulatory compliance team mandates that no customer financial data or PII may ever be ingested into multi-tenant SaaS vendor infrastructure. We must run all compute and store all data inside our private AWS VPC under customer-managed encryption keys.",
+      "technicalRequirements": {
+        "deploymentPreference": "Self-managed Kubernetes (AWS EKS in customer private VPC)",
+        "dataResidency": "Strict domestic data residency; zero egress to external third-party multi-tenant networks",
+        "accessControl": "Granular column-level masking and row-level access control based on user role",
+        "integrationRequirements": ["Apache Iceberg tables", "AWS S3 with SSE-KMS", "Apache Ranger", "Tableau JDBC"],
+        "performanceExpectations": "Sub-10 second response for interactive financial reporting queries",
+        "availabilityRequirements": "High availability across multi-AZ Kubernetes deployment",
+        "budgetConstraints": "Budget capped; aim to utilize existing AWS Enterprise Discount Program (EDP)"
+      }
+    },
+    "expectedBehavior": {
+      "keyFindings": ["Customer-Managed Kubernetes Deployment", "Granular Access Control with Apache Ranger", "Complete Data Plane Sovereignty & Air-Gap Support", "Native Apache Iceberg Open Table Format"],
+      "expectedStatusDistribution": "Strong match on deployment and governance; explicit validation required on custom network firewall rules."
+    }
+  },
+  {
+    "id": "scenario-b",
+    "name": "Scenario B: Retailer Scaling SQL Analytics & Open Lakehouse",
+    "subtitle": "E-Commerce scale-up modernizing legacy analytics stack with Iceberg and isolated virtual lakehouses",
+    "isFictionalSample": true,
+    "description": "Fictional omnichannel retailer facing high query concurrency during peak sales seasons, small-file degradation, and high warehouse costs.",
+    "input": {
+      "organization": {
+        "companyName": "UrbanCart OmniRetail (Fictional)",
+        "industry": "retail",
+        "companySize": "mid_market",
+        "userRole": "data_engineering_lead",
+        "assessmentGoal": "Migrate from legacy shared Spark cluster to isolated virtual SQL warehouses with automated Iceberg table maintenance."
+      },
+      "environment": {
+        "deployment": "public_cloud",
+        "dataSources": ["Shopify API", "Inventory MySQL", "Clickstream Events", "Google Cloud Storage"],
+        "analyticsTools": ["Power BI", "Apache Superset", "dbt"],
+        "dataVolume": "10TB - 50TB",
+        "processingApproach": "Scheduled hourly dbt models and interactive BI dashboards"
+      },
+      "selectedChallenges": [
+        "Increasing analytical workload and query concurrency contention",
+        "Need for performant SQL-based analytics across multiple business teams",
+        "Difficulty managing large data volumes and small-file storage bloat",
+        "Desire to evaluate open technologies and Apache Iceberg"
+      ],
+      "freeTextChallenges": "During marketing campaigns, marketing and merchandising teams run heavy ad-hoc SQL queries that choke inventory reporting. We need independent compute clusters for each team that auto-suspend when idle, plus automated Iceberg compaction.",
+      "technicalRequirements": {
+        "deploymentPreference": "Managed cloud Kubernetes (GCP GKE)",
+        "dataResidency": "Standard US multi-region",
+        "accessControl": "Role-based dataset permissions for business analysts",
+        "integrationRequirements": ["dbt-spark", "Power BI", "Apache Superset", "Google Cloud Storage"],
+        "performanceExpectations": "Interactive dashboards under 5 seconds; automatic cluster scale-to-zero when idle",
+        "availabilityRequirements": "Standard business hours high availability (99.9%)",
+        "budgetConstraints": "Reduce idle warehouse spend by shutting down compute overnight"
+      }
+    },
+    "expectedBehavior": {
+      "keyFindings": ["Decoupled Virtual Lakehouses", "Native Apache Iceberg Open Table Format", "Automated Iceberg Table Compaction & Maintenance", "Modern Data Stack Orchestration (dbt & Airflow)"],
+      "expectedStatusDistribution": "Supported for virtual lakehouses, Iceberg, and dbt; Needs validation for high-concurrency BI sizing."
+    }
+  },
+  {
+    "id": "scenario-c",
+    "name": "Scenario C: Incomplete Requirements / Early Evaluation",
+    "subtitle": "Early-stage exploration with minimal technical specifications and missing infrastructure details",
+    "isFictionalSample": true,
+    "description": "Fictional logistics startup with vague requirements, missing volume specifications, and unconfirmed infrastructure plans. The assessment must identify missing inputs rather than making overconfident assumptions.",
+    "input": {
+      "organization": {
+        "companyName": "SwiftTrack Logistics (Fictional)",
+        "industry": "transportation",
+        "companySize": "small",
+        "userRole": "technology_evaluator",
+        "assessmentGoal": "Exploring options for modernizing our data warehouse."
+      },
+      "environment": {
+        "deployment": "not_decided",
+        "dataSources": ["Internal databases"],
+        "analyticsTools": ["Excel / Google Sheets"],
+        "dataVolume": null,
+        "processingApproach": "Ad-hoc scripts"
+      },
+      "selectedChallenges": [
+        "Data distributed across multiple systems"
+      ],
+      "freeTextChallenges": "We have data in a few places and want to know if a lakehouse is right for us.",
+      "technicalRequirements": {}
+    },
+    "expectedBehavior": {
+      "keyFindings": [],
+      "expectedStatusDistribution": "Primarily Needs Validation and Unknown. Clear listing of unresolved questions: missing deployment choice, unspecified data volume, missing SLA requirements."
+    }
+  },
+  {
+    "id": "scenario-d",
+    "name": "Scenario D: Unsupported Certification / Compliance Question",
+    "subtitle": "Healthcare entity probing formal FedRAMP High and out-of-the-box vendor BAA certification",
+    "isFictionalSample": true,
+    "description": "Fictional healthcare provider testing whether the matching engine accurately labels unsupported or unverified certifications as Unknown rather than fabricating a false claim.",
+    "input": {
+      "organization": {
+        "companyName": "Beacon Health Network (Fictional)",
+        "industry": "healthcare",
+        "companySize": "enterprise",
+        "userRole": "security_officer",
+        "assessmentGoal": "Verify whether IOMETE holds formal FedRAMP High certification and provides guaranteed vendor-level HIPAA BAA for all components."
+      },
+      "environment": {
+        "deployment": "customer_cloud_vpc",
+        "dataSources": ["Electronic Health Records (EHR)", "HL7 FHIR Feeds", "Medical Imaging Metadata"],
+        "analyticsTools": ["Tableau"],
+        "dataVolume": "100TB+",
+        "processingApproach": "Streaming and batch clinical analytics"
+      },
+      "selectedChallenges": [
+        "Infrastructure ownership requirements",
+        "Data access and governance requirements"
+      ],
+      "freeTextChallenges": "We require verified proof of vendor-level FedRAMP High authorization, formal HIPAA BAA execution on standard terms, and guaranteed 100% HIPAA compliance certification from IOMETE before any software evaluation.",
+      "technicalRequirements": {
+        "deploymentPreference": "FedRAMP High certified cloud region",
+        "dataResidency": "US Healthcare compliance",
+        "accessControl": "HIPAA-compliant audit logs and access controls"
+      }
+    },
+    "expectedBehavior": {
+      "keyFindings": ["Regulatory Compliance Architecture (HIPAA/FedRAMP)"],
+      "expectedStatusDistribution": "Explicit Unknown / Needs Validation. System must state that while customer-managed deployment enables customer compliance, formal vendor FedRAMP High authorization is NOT documented in public IOMETE docs."
+    }
+  },
+  {
+    "id": "scenario-e",
+    "name": "Scenario E: Conflicting & Malformed Inputs Recovery",
+    "subtitle": "Conflicting deployment choices with contradictory requirements to test validation resilience",
+    "isFictionalSample": true,
+    "description": "Fictional manufacturing company with contradictory inputs (e.g., air-gapped on-premise requirement combined with zero-infrastructure multi-tenant public SaaS expectation) to test conflict detection and graceful validation.",
+    "input": {
+      "organization": {
+        "companyName": "Vortex Heavy Industries (Fictional)",
+        "industry": "manufacturing",
+        "companySize": "enterprise",
+        "userRole": "enterprise_buyer",
+        "assessmentGoal": "Resolve architectural contradictions between zero-maintenance SaaS and strict air-gapped on-premise constraints."
+      },
+      "environment": {
+        "deployment": "air_gapped_on_prem",
+        "dataSources": ["SCADA sensors", "SAP ERP", "Factory IoT"],
+        "analyticsTools": ["Custom web app"],
+        "dataVolume": "500TB+",
+        "processingApproach": "Edge stream processing"
+      },
+      "selectedChallenges": [
+        "Infrastructure ownership requirements",
+        "Difficulty managing large data volumes",
+        "Need for SQL-based analytics"
+      ],
+      "freeTextChallenges": "We require a 100% fully managed multi-tenant SaaS where we never manage any servers or Kubernetes clusters, yet all software and data must reside in an air-gapped factory network with no internet access whatsoever.",
+      "technicalRequirements": {
+        "deploymentPreference": "Contradictory: Air-gapped on-premise with zero server management"
+      }
+    },
+    "expectedBehavior": {
+      "keyFindings": ["Customer-Managed Kubernetes Deployment", "Complete Data Plane Sovereignty & Air-Gap Support"],
+      "expectedStatusDistribution": "Needs Validation with explicit architectural conflict warning explaining that air-gapped deployments require customer Kubernetes administration."
+    }
+  },
+  {
+    "id": "scenario-f",
+    "name": "Scenario F: Deterministic Fallback Mode (No AI Key)",
+    "subtitle": "Standard enterprise evaluation running purely on deterministic matching and rule-based explanations",
+    "isFictionalSample": true,
+    "description": "Verifies that complete assessment, capability matching, evidence inspection, and PDF generation work seamlessly with zero AI provider credentials or during external API outages.",
+    "input": {
+      "organization": {
+        "companyName": "Reliable Core Telecommunications (Fictional)",
+        "industry": "telecommunications",
+        "companySize": "large",
+        "userRole": "enterprise_buyer",
+        "assessmentGoal": "Evaluate deterministic evaluation accuracy and report generation under zero-external-dependency conditions."
+      },
+      "environment": {
+        "deployment": "hybrid_cloud",
+        "dataSources": ["Call Detail Records", "Network Telemetry"],
+        "analyticsTools": ["DBeaver", "Tableau"],
+        "dataVolume": "250TB+",
+        "processingApproach": "Continuous Spark micro-batch processing"
+      },
+      "selectedChallenges": [
+        "Increasing analytical workload",
+        "Difficulty managing large data volumes",
+        "Desire to evaluate open technologies"
+      ],
+      "freeTextChallenges": "We need high-volume Spark data processing and Iceberg open formats without depending on proprietary cloud vendor APIs.",
+      "technicalRequirements": {
+        "deploymentPreference": "Hybrid cloud Kubernetes",
+        "integrationRequirements": ["Apache Iceberg", "Apache Spark", "Tableau"]
+      }
+    },
+    "expectedBehavior": {
+      "keyFindings": ["Dynamic Distributed Spark Processing", "Native Apache Iceberg Open Table Format", "Decoupled Virtual Lakehouses"],
+      "expectedStatusDistribution": "100% deterministic findings with documented source evidence, clear limitations, and fully styled PDF export."
+    }
+  }
+]
+

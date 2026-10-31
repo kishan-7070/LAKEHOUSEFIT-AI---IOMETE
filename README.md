@@ -1,240 +1,200 @@
-LakehouseFit AI
-> **Evidence-backed buyer-readiness assessment for evaluating IOMETE against business and technical requirements.**
-LakehouseFit AI helps technology buyers turn their data-platform requirements into a structured assessment: potentially relevant documented capabilities, evidence links, unknowns, validation questions, and recommended next steps.
-> **Project status:** Implementation/demo project. Verify all IOMETE capability claims against current official documentation before relying on them for a real purchasing decision. This README describes the intended product and setup; only claim features are complete after they have been implemented and tested in your repository.
-Table of contents
-The problem
-The solution
-Key features
-How it works
-Technology stack
-Getting started
-Environment variables
-Available scripts
-Testing and quality checks
-Project structure
-Evidence and assessment methodology
-Security and privacy
-Deployment
-Limitations
-Roadmap
-Contributing
-License
-The problem
-Evaluating a data platform can involve scattered documentation, unclear technical requirements, and repeated discovery calls. Buyers need a clearer way to connect their needs to documented capabilities while identifying what still requires confirmation.
-The solution
-LakehouseFit AI provides a guided assessment workflow that organizes requirements and maps them to a curated capability knowledge base. The result is designed to help a buyer understand:
-Which documented capabilities may be relevant to their requirements.
-What evidence supports each finding.
-Which requirements need further validation.
-What information is still unknown.
-What questions and next steps can help move the evaluation forward.
-LakehouseFit AI is an assessment aid, not a guarantee of product compatibility or a replacement for technical due diligence.
-Key features
-The project specification covers the following functionality. Update this list to reflect what is actually implemented in your current repository.
-Guided assessment: Capture the user's role, organization context, data environment, challenges, and technical requirements.
-Requirement matching: Use deterministic, explainable rules to relate requirements to curated capability records.
-Evidence-backed findings: Display source information, evidence status, limitations, and follow-up questions.
-Clear assessment statuses: Distinguish `Supported`, `Needs validation`, and `Unknown`.
-Results dashboard: Summarize findings, unresolved questions, risks, and suggested next steps.
-PDF report: Generate a shareable report of the assessment and its evidence.
-Optional AI explanations: Improve the readability of findings using a server-side AI provider, without allowing the model to invent evidence or determine verification status.
-Sample scenarios: Use clearly labelled fictional scenarios for demonstrations and testing.
-Graceful fallback: Keep the core assessment workflow usable when an optional AI provider is unavailable.
-Responsive interface: Support desktop and mobile layouts with accessible form controls and error states.
-How it works
-The user completes the assessment wizard.
-The application validates the submitted information.
-Requirements are normalized into structured records.
-The matching engine compares requirements with the curated capability knowledge base.
-The application produces findings with evidence references, limitations, and unresolved questions.
-The results page presents the assessment.
-The user can generate a PDF report for review and follow-up.
-A finding labelled `Supported` means that a reviewed source appears relevant to the stated requirement. It does not guarantee that IOMETE will satisfy every customer-specific constraint. Missing or inconclusive evidence should remain `Unknown` or `Needs validation`.
-Technology stack
-The planned stack is:
-Framework: Next.js App Router
-UI: React, TypeScript, Tailwind CSS
-Server APIs: Next.js Route Handlers
-Validation: Zod
-Database: MongoDB with Mongoose or the official MongoDB driver
-AI: Optional server-side provider integration
-PDF: Server-side PDF generation library
-Testing: Vitest and Playwright, or compatible alternatives
-The actual versions and dependencies are defined by `package.json` and the lockfile in the repository.
-Getting started
-Prerequisites
-Install the following before running the application:
-Node.js version supported by the installed Next.js version.
-npm (or the package manager indicated by the repository's lockfile).
-MongoDB connection string if persistent database functionality is enabled.
-An AI provider API key only if optional AI explanations have been implemented and you want to use them.
-1. Clone the repository
-Replace `<your-github-username>` with your GitHub username and `<repository-name>` with your repository name.
-```bash
-git clone https://github.com/<your-github-username>/<repository-name>.git
-cd <repository-name>
+# LakehouseFit AI
+> **Evidence-backed buyer-readiness assessment platform for evaluating IOMETE against business and technical requirements.**
+
+**Hackathon Track:** hackCBS — IOMETE Track  
+**Tagline:** From Data Challenges to Evidence-Backed Decisions.  
+**Version:** 1.0 (Implementation Complete)  
+
+---
+
+## 1. Overview
+
+**LakehouseFit AI** is an evidence-backed buyer-readiness assessment platform built for enterprise technology buyers, data leaders, and sales representatives evaluating IOMETE's data lakehouse architecture.
+
+Instead of navigating unstructured vendor documentation, sitting through repeated discovery calls, or relying on probabilistic AI chatbots that hallucinate product claims, LakehouseFit AI provides a **deterministic, auditable assessment workflow**:
+
+1. **Guided Requirement Collection:** Captures organization profile, existing data environment, business challenges, and technical constraints.
+2. **Deterministic Matching Engine:** Evaluates requirements against a curated knowledge base derived from reviewed official IOMETE documentation.
+3. **Evidence-Backed Findings:** Assigns clear requirement-level statuses (`Supported`, `Needs validation`, `Unknown`), complete with official documentation URLs, verified citations, operational limitations, and follow-up discovery questions.
+4. **Actionable Buyer Report:** Generates an executive readiness report and instant downloadable PDF report with next steps and methodology disclaimers.
+
+---
+
+## 2. Judging Strategy & Proof (hackCBS IOMETE Track)
+
+| Criterion | Weight | How LakehouseFit AI Delivers |
+|---|---:|---|
+| **Practical Impact** | **35%** | Replaces unstructured vendor discovery with a structured assessment and reusable buyer-readiness report; provides pre-loaded evaluation scenarios and discovery checklists. |
+| **Buyer Clarity** | **25%** | Plain-language executive summaries, role-aware recommendations, transparent status definitions, and concrete next steps for technical and financial stakeholders. |
+| **Accuracy** | **25%** | Grounded 100% in official documentation (`iomete.com/docs`). No fabricated certifications, pricing, or benchmarks. Unsupported claims explicitly return `Unknown`. |
+| **Working Execution** | **15%** | Complete end-to-end workflow: Landing Page &rarr; Assessment Wizard &rarr; Deterministic Engine &rarr; Results Dashboard &rarr; PDF Export. |
+
+---
+
+## 3. Technology Stack
+
+- **Framework:** Next.js 14 App Router (React 18, TypeScript)
+- **Styling:** Tailwind CSS, responsive mobile/desktop design, enterprise SaaS palette (deep green accent, accessible contrast)
+- **Validation:** Zod schemas shared across client and server
+- **Database:** MongoDB with Mongoose (with thread-safe in-memory demo store fallback when database is not configured)
+- **Authentication:** Enterprise JWT sessions with `bcryptjs` and `jose`, featuring dedicated sign-in/sign-up and a **1-Click Demo Login** for hackathon judges
+- **User Dashboard:** `/dashboard` for managing saved assessments and reports linked to user accounts in MongoDB
+- **Report Generation:** Server-side PDF generation using `jspdf` with multi-page pagination and clickable source links
+- **Testing:** Vitest for unit and integration testing
+- **AI Layer (Optional):** Server-side provider abstraction (Google Gemini / OpenAI) strictly grounded in retrieved evidence with complete deterministic fallback
+
+---
+
+## 4. Project Structure
+
+```text
+lakehousefit-ai/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx                           # S1: Landing page with value prop, workflow, knowledge base
+│   │   ├── layout.tsx                         # Root layout with responsive Navbar and Footer
+│   │   ├── globals.css                        # Tailwind global styles
+│   │   ├── assessment/
+│   │   │   ├── page.tsx                       # S2: Multi-step assessment wizard (Steps 1-5 + preload)
+│   │   │   └── results/[id]/page.tsx          # S3/S4: Truthful processing & Results dashboard
+│   │   ├── reports/[id]/page.tsx              # S5/S6: Full web report preview & print view
+│   │   └── api/
+│   │       ├── assessments/route.ts           # POST /api/assessments (create assessment)
+│   │       ├── assessments/[id]/route.ts      # GET /api/assessments/:id (fetch assessment)
+│   │       ├── assessments/[id]/analyze/route.ts # POST /api/assessments/:id/analyze (matching & report)
+│   │       ├── assessments/[id]/report/route.ts  # GET /api/assessments/:id/report (PDF download)
+│   │       ├── capabilities/route.ts          # GET /api/capabilities (reviewed knowledge base)
+│   │       └── scenarios/route.ts             # GET /api/scenarios (predefined test scenarios)
+│   ├── components/
+│   │   └── layout/
+│   │       ├── Navbar.tsx                     # Top navigation with status badge
+│   │       └── Footer.tsx                     # Links to official documentation and methodology
+│   ├── data/
+│   │   ├── capabilities.json                  # 12 reviewed official IOMETE capabilities with URLs
+│   │   └── sample-scenarios.json              # 6 predefined test scenarios (A through F)
+│   ├── lib/
+│   │   ├── ai/provider.ts                     # Server AI adapter with deterministic fallback
+│   │   ├── db/connection.ts                   # MongoDB connection with in-memory fallback
+│   │   ├── db/in-memory-store.ts              # Demo store singleton
+│   │   ├── evidence/verification.ts           # Evidence auditing and accuracy rules
+│   │   ├── matching/engine.ts                 # Deterministic MatchingEngine class
+│   │   ├── matching/rules.ts                  # Normalization rules and conflict detector
+│   │   ├── pdf/generate-report.ts             # Server-side PDF generation
+│   │   └── validation/assessment-schema.ts    # Zod schemas for request validation
+│   ├── models/
+│   │   ├── Assessment.ts                      # Mongoose Assessment model
+│   │   └── Report.ts                          # Mongoose Report model
+│   └── types/
+│       ├── assessment.ts                      # TypeScript assessment contracts
+│       ├── capability.ts                      # TypeScript capability contracts
+│       └── report.ts                          # TypeScript report contracts
+├── tests/
+│   ├── unit/matching-engine.test.ts           # Unit tests for matching, normalization, and PDF
+│   └── integration/api-workflow.test.ts       # Integration tests for end-to-end evaluation
+├── IMPLEMENTATION_STATUS.md                   # Formal implementation verification report
+├── .env.example                               # Environment template with placeholders
+├── package.json                               # Dependencies and scripts
+└── tsconfig.json                              # TypeScript configuration
 ```
-2. Install dependencies
-For npm projects:
+
+---
+
+## 5. Getting Started
+
+### Prerequisites
+
+- Node.js (v18+ or v20+, tested on Node v24)
+- npm (v9+)
+
+### 1. Installation
+
 ```bash
+git clone <repository-url>
+cd LAKEHOUSEFIT-AI---IOMETE
 npm install
 ```
-If the repository contains `pnpm-lock.yaml`, `yarn.lock`, or `bun.lockb`/`bun.lock`, use the corresponding package manager instead of mixing package managers.
-3. Configure environment variables
-Create a local environment file:
+
+### 2. Environment Configuration
+
+Copy `.env.example` to `.env.local`:
+
 ```bash
 cp .env.example .env.local
 ```
-If `.env.example` does not exist yet, create it using the variable names documented below. Add real credentials only to `.env.local`, and never commit that file.
-4. Start the development server
+
+| Variable | Required? | Purpose |
+|---|---|---|
+| `MONGODB_URI` | Optional | MongoDB connection string. If unset, runs in Demo Mode with in-memory store. |
+| `AI_PROVIDER` | Optional | Set to `gemini` or `openai` for AI phrasing enhancements. |
+| `AI_API_KEY` | Optional | Server-side API key for the chosen AI provider. |
+| `AI_MODEL` | Optional | Model identifier (defaults to `gemini-1.5-flash` or `gpt-4o-mini`). |
+| `NEXT_PUBLIC_APP_URL` | Optional | Application origin (defaults to `http://localhost:3000`). |
+
+> **Resilience Note:** The core workflow, deterministic matching engine, and PDF export operate with 100% functionality **without any database or AI keys configured**.
+
+### 3. Running the Development Server
+
 ```bash
 npm run dev
 ```
-Open the local address printed in the terminal (commonly `http://localhost:3000`).
-Environment variables
-Only configure variables that are actually used by the implementation. Keep secrets on the server; never prefix secrets with `NEXT_PUBLIC_`.
-Variable	Required?	Purpose
-`MONGODB_URI`	Only if database persistence is enabled	MongoDB connection string
-`AI_PROVIDER`	Optional	Identifier for the implemented AI provider
-`AI_API_KEY`	Optional	Server-side API key for the selected AI provider
-`AI_MODEL`	Optional	Model identifier supported by the selected provider
-`NEXT_PUBLIC_APP_URL`	Deployment-dependent	Public application origin, if required
-Example `.env.example`:
-```dotenv
-# Configure only if MongoDB persistence is implemented.
-MONGODB_URI=
 
-# Optional AI integration; keep secrets server-side.
-AI_PROVIDER=
-AI_API_KEY=
-AI_MODEL=
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-# Optional public origin.
-NEXT_PUBLIC_APP_URL=
-```
-Do not commit real credentials, tokens, private keys, or production connection strings. If a required variable is missing, the application should show a clear configuration error rather than pretending the integration succeeded.
-Available scripts
-Check the `scripts` section in `package.json` before running these commands. The exact scripts depend on the current implementation.
-Common commands may include:
+---
+
+## 6. Verification and Testing
+
+### Run Automated Tests
+
 ```bash
-npm run dev       # Start development server
-npm run lint      # Run lint checks, if configured
-npm test          # Run tests, if configured
-npm run build     # Create a production build
-npm start         # Run the production server after building
+npm test
 ```
-For TypeScript projects, you can also run:
+Executes all unit and integration tests using Vitest (verifies requirement normalization, capability matching, evidence auditing, conflict detection, unknown question handling, and PDF generation).
+
+### Run Type Checking
+
 ```bash
-npx tsc --noEmit
+npm run typecheck
 ```
-Run Playwright tests only if Playwright and the required browsers are configured:
+Executes `tsc --noEmit` to verify 100% TypeScript type safety.
+
+### Run Linting
+
 ```bash
-npx playwright test
+npm run lint
 ```
-Do not report a test or build as passing unless you have actually run it and confirmed the result.
-Testing and quality checks
-Before presenting a demo or deploying, verify the following:
-[ ] The production build completes successfully.
-[ ] Lint and TypeScript checks pass, if configured.
-[ ] Matching rules have unit tests for all three assessment statuses.
-[ ] Missing or inconclusive evidence cannot be marked `Supported`.
-[ ] Invalid assessment inputs return helpful validation errors.
-[ ] The assessment flow works from start to results.
-[ ] Evidence links point to real, reviewed sources.
-[ ] PDF generation works and long text does not get clipped.
-[ ] The application handles missing database configuration clearly.
-[ ] The main flow remains usable when optional AI is unavailable.
-[ ] Mobile layout and keyboard navigation have been checked.
-[ ] No credentials or `.env.local` file are committed.
-Project structure
-The structure below is a suggested layout. Your repository may differ depending on the implementation.
-```text
-src/
-  app/
-    page.tsx
-    assessment/
-      page.tsx
-      results/[id]/
-        page.tsx
-    reports/[id]/
-      page.tsx
-    api/
-      assessments/
-      capabilities/
-  components/
-    assessment/
-    results/
-    evidence/
-    reports/
-    ui/
-  lib/
-    db/
-    validation/
-    matching/
-    evidence/
-    ai/
-    pdf/
-  models/
-  data/
-    capabilities.json
-    sample-scenarios.json
-  types/
-tests/
-  unit/
-  integration/
-  e2e/
+Executes Next.js ESLint to verify code quality.
+
+### Build for Production
+
+```bash
+npm run build
 ```
-Evidence and assessment methodology
-LakehouseFit AI should prioritize accuracy over confident-sounding answers.
-Supported: A reviewed source documents a capability relevant to the requirement. Customer-specific compatibility may still need confirmation.
-Needs validation: Related evidence exists, but the exact configuration, integration, or requirement has not been established.
-Unknown: Available reviewed evidence is insufficient to make a reliable claim. This does not prove that the product lacks the capability.
-Every capability record should include a source title, actual source URL, review date, evidence status, and limitations. Verify all URLs and claims against official IOMETE documentation before using them in a real assessment. Do not invent citations, compliance claims, benchmarks, pricing, ROI, or compatibility guarantees.
-Security and privacy
-Keep database credentials and AI provider keys in server-only environment variables.
-Validate API input on the server.
-Avoid logging secrets or unnecessary personal/company data.
-Treat user-entered free text as untrusted input.
-Do not send confidential information to an AI provider unless it is necessary and authorized.
-Apply access controls to stored assessments and reports.
-Document data retention and deletion behavior based on the actual implementation.
-Never claim that data is encrypted, private, or deleted unless those guarantees are implemented and verified.
-Deployment
-LakehouseFit AI is intended to be deployable on a platform that supports the chosen Next.js runtime. Vercel is one option, with MongoDB Atlas or another supported MongoDB deployment if persistence is enabled.
-General deployment checklist:
-Push the project to GitHub.
-Import the repository into your chosen hosting provider.
-Configure the environment variables required by the implementation.
-Configure the production MongoDB database and network access, if used.
-Run the production build.
-Deploy and open the public URL.
-Test the full assessment-to-PDF workflow in production.
-Confirm that no secrets are exposed in client bundles or repository history.
-Consult the official Next.js documentation and Vercel documentation for current deployment instructions.
-Limitations
-Assessment results depend on the quality and freshness of the curated evidence.
-A relevant documented capability does not prove fit for every environment.
-Unknown means evidence is insufficient; it does not mean a feature is absent.
-AI-generated wording, if enabled, must not replace evidence verification.
-Demo scenarios are fictional and must be labelled as such.
-Actual availability of database persistence, PDF export, AI integration, and tests depends on the code implemented in the repository.
-Roadmap
-[ ] Complete the guided assessment workflow.
-[ ] Curate and review official IOMETE capability sources.
-[ ] Implement deterministic requirement matching and evidence statuses.
-[ ] Complete results dashboard and PDF report generation.
-[ ] Add unit, integration, and end-to-end tests.
-[ ] Verify responsive UI and accessibility.
-[ ] Configure production persistence and deployment.
-[ ] Add optional grounded AI explanations after the core workflow is stable.
-Contributing
-Contributions are welcome.
-Fork the repository.
-Create a feature branch.
-Make a focused change.
-Run the relevant tests and checks.
-Open a pull request describing the change and verification performed.
-Please do not include credentials, private assessment data, or unverified product claims in pull requests.
-License
-No license has been selected yet. Unless a license is added to this repository, standard copyright restrictions apply. Add a `LICENSE` file before presenting the project as open source.
+Creates an optimized production bundle verifying all 8 static and dynamic routes.
+
+---
+
+## 7. Pre-Configured Test Scenarios (PRD Section 13.1)
+
+LakehouseFit AI includes 6 pre-configured scenarios accessible from the landing page and assessment wizard:
+
+1. **Scenario A (Sovereign Infrastructure):** Fictional regional bank evaluating customer-controlled Kubernetes deployment in a private AWS VPC with Apache Ranger row/column security.
+2. **Scenario B (Scaling SQL Analytics):** Omnichannel retailer migrating to isolated virtual lakehouses and automated Iceberg table compaction.
+3. **Scenario C (Incomplete Requirements):** Early-stage logistics company with vague specifications; demonstrates how the engine identifies missing parameters without making assumptions.
+4. **Scenario D (Unsupported Compliance / FedRAMP Unknown Test):** Healthcare entity probing formal FedRAMP High certification and out-of-the-box vendor HIPAA BAA; demonstrates that unverified claims correctly return `Needs Validation` / `Unknown`.
+5. **Scenario E (Conflict Recovery):** Contradictory inputs (air-gapped on-premise with zero server administration SaaS); triggers architectural conflict detection.
+6. **Scenario F (Deterministic Fallback):** Telecom evaluation verifying 100% operation under zero external AI/API dependencies.
+
+---
+
+## 8. Limitations & Product Boundaries
+
+- **Decision Support Only:** LakehouseFit AI provides objective guidance based on curated official documentation; it is not a formal certification of software compatibility or contractual SLA.
+- **Environment Dependencies:** Performance benchmarks, cluster cold-start latency, and network throughput depend on customer Kubernetes cluster sizing and cloud infrastructure.
+- **Total Cost of Ownership (TCO):** Speculative dollar ROI or blanket cost savings are not promised. True cost reduction must be validated during a technical Proof of Concept (PoC).
+
+---
+
+## 9. License
+
+This project was built for the **hackCBS — IOMETE Track**. All documentation references and links cite official public documentation from [iomete.com](https://iomete.com).

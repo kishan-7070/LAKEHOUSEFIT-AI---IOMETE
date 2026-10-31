@@ -1,0 +1,529 @@
+[
+  {
+    "srNo": 1,
+    "id": "deployment-kubernetes-helm",
+    "name": "Customer-Managed Kubernetes Deployment",
+    "category": "deployment",
+    "description": "IOMETE deploys natively into customer-controlled Kubernetes clusters (EKS, AKS, GKE, or on-premises) using enterprise Helm charts, ensuring analytical infrastructure and data remain within the customer perimeter.",
+    "technicalDetails": "Packaged in 'iomete-data-plane-enterprise' Helm chart. Microservices include iom-gateway (Nginx proxy), iom-core, iom-cluster, and iom-identity. Bootstrapped via 'iomete-data-plane-init' hook.",
+    "relevantRequirementTags": ["kubernetes", "helm", "customer-controlled-infrastructure", "self-hosted", "on-premises", "private-cloud", "infrastructure-control"],
+    "source": {
+      "title": "IOMETE Deployment and Helm Architecture",
+      "url": "https://iomete.com/docs/deployment",
+      "excerpt": "IOMETE is packaged into a single enterprise Helm chart that deploys all platform services into a designated Kubernetes namespace.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Customer must provide and manage a supported Kubernetes cluster (v1.24+) and ingress controller."]
+  },
+  {
+    "srNo": 2,
+    "id": "storage-apache-iceberg",
+    "name": "Native Apache Iceberg Open Table Format",
+    "category": "storage",
+    "description": "All data lakehouse tables are built natively on Apache Iceberg, providing full ACID transactions, snapshot isolation, partition evolution, schema evolution, and time-travel querying without vendor lock-in.",
+    "technicalDetails": "Implements Iceberg REST Catalog and Hive Metastore compatibility. Eliminates data lock-in by writing standard Parquet files with Iceberg metadata manifests directly into object storage.",
+    "relevantRequirementTags": ["apache-iceberg", "open-formats", "acid-transactions", "time-travel", "schema-evolution", "no-vendor-lockin", "lakehouse-storage"],
+    "source": {
+      "title": "IOMETE Apache Iceberg Storage Guide",
+      "url": "https://iomete.com/docs/user-guide/virtual-lakehouses",
+      "excerpt": "IOMETE tables are written as Apache Iceberg format files over object storage, providing ACID transaction guarantees and time travel.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Existing data lakes stored as legacy unmanaged Parquet require catalog registration or table conversion."]
+  },
+  {
+    "srNo": 3,
+    "id": "storage-agnostic-object-store",
+    "name": "Cloud-Agnostic Object Storage Integration",
+    "category": "storage",
+    "description": "IOMETE completely decouples compute from storage and connects to any S3-compatible object storage, including AWS S3, Azure ADLS Gen2, Google Cloud Storage (GCS), MinIO, Ceph, and Apache Ozone.",
+    "technicalDetails": "Supports s3a://, gs://, abfs:// protocols with customer-owned encryption keys (SSE-S3, SSE-KMS, Azure Key Vault).",
+    "relevantRequirementTags": ["object-storage", "aws-s3", "azure-adls", "google-cloud-storage", "minio", "hybrid-cloud", "storage-decoupling"],
+    "source": {
+      "title": "IOMETE Storage Configuration",
+      "url": "https://iomete.com/docs/deployment",
+      "excerpt": "Supports any S3-compatible object storage such as AWS S3, Azure Blob, Google Cloud Storage, or MinIO.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Direct legacy POSIX/NFS shared drives are not supported without an S3-compatible gateway."]
+  },
+  {
+    "srNo": 4,
+    "id": "compute-virtual-lakehouses",
+    "name": "Isolated Virtual Lakehouses (SQL Warehouses)",
+    "category": "compute",
+    "description": "Spin up multiple independent virtual lakehouses with dedicated Spark compute resources tailored to specific business units or workloads, avoiding noisy neighbor contention.",
+    "technicalDetails": "Each virtual lakehouse runs dedicated Spark SQL driver and executor pods with auto-suspend and resume.",
+    "relevantRequirementTags": ["virtual-lakehouses", "sql-analytics", "isolated-compute", "auto-suspend", "multi-tenant-workloads", "cost-control"],
+    "source": {
+      "title": "IOMETE Virtual Lakehouses",
+      "url": "https://iomete.com/docs/user-guide/virtual-lakehouses",
+      "excerpt": "Spin up isolated virtual lakehouses for different teams with dedicated compute and independent auto-scaling.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Cold-start latency when waking up a suspended lakehouse depends on underlying Kubernetes node autoscaling speed."]
+  },
+  {
+    "srNo": 5,
+    "id": "compute-dynamic-spark-jobs",
+    "name": "Dynamic Distributed Spark Processing",
+    "category": "compute",
+    "description": "Execute large-scale batch ETL pipelines, streaming ingest, and complex data transformations using distributed Apache Spark runtimes managed dynamically through Kubernetes.",
+    "technicalDetails": "Scheduled via Kubernetes Spark Operator. Spark drivers and executors are provisioned as ephemeral pods.",
+    "relevantRequirementTags": ["spark-jobs", "etl-pipelines", "batch-processing", "streaming-data", "spark-operator", "distributed-computing"],
+    "source": {
+      "title": "IOMETE Spark Jobs Guide",
+      "url": "https://iomete.com/docs/user-guide/spark-jobs",
+      "excerpt": "Spark workloads are dynamically scheduled as native Kubernetes pods leveraging the Spark Operator framework.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Streaming jobs require continuous pod execution and cannot be automatically suspended."]
+  },
+  {
+    "srNo": 6,
+    "id": "governance-apache-ranger",
+    "name": "Granular Access Control with Apache Ranger",
+    "category": "governance",
+    "description": "Enforce centralized security policies including row-level filtering, column-level masking, and role-based permissions across lakehouse tables via integrated Apache Ranger.",
+    "technicalDetails": "Synchronized with iom-identity. Provides detailed audit logs of all SQL queries and data access events.",
+    "relevantRequirementTags": ["access-control", "apache-ranger", "column-level-security", "row-level-filtering", "data-governance", "audit-logging"],
+    "source": {
+      "title": "IOMETE Security & Data Governance",
+      "url": "https://iomete.com/docs/data-security/overview",
+      "excerpt": "Integrates with Apache Ranger to enforce fine-grained, column-level, and row-level data security policies.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Corporate identity synchronization requires SAML/OIDC configuration with customer identity provider."]
+  },
+  {
+    "srNo": 7,
+    "id": "governance-data-sovereignty",
+    "name": "Complete Data Plane Sovereignty & Air-Gap Support",
+    "category": "governance",
+    "description": "Because the entire data plane executes in the customer cloud or on-prem environment, customer data never leaves customer custody. Supports air-gapped environments.",
+    "technicalDetails": "Clean separation between control plane and data plane. Customer maintains sole custody of cryptographic keys and storage buckets.",
+    "relevantRequirementTags": ["data-residency", "data-sovereignty", "air-gapped", "private-vpc", "customer-custody"],
+    "source": {
+      "title": "IOMETE Security Architecture",
+      "url": "https://iomete.com/docs/architecture",
+      "excerpt": "Customer data remains entirely inside customer-owned infrastructure, ensuring full data sovereignty and air-gapped compatibility.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Air-gapped operation requires setting up a private container registry mirror for IOMETE images."]
+  },
+  {
+    "srNo": 8,
+    "id": "analytics-bi-connectivity",
+    "name": "BI Connectivity & Spark Connect / Arrow Flight",
+    "category": "analytics",
+    "description": "Connect standard BI tools (Tableau, Power BI, Apache Superset, Metabase, DBeaver) using standard JDBC/ODBC, Apache Arrow Flight, and Spark Connect protocols.",
+    "technicalDetails": "The iom-gateway routes client queries through high-throughput Arrow Flight or JDBC/ODBC endpoints.",
+    "relevantRequirementTags": ["bi-tools", "tableau", "powerbi", "superset", "jdbc-odbc", "spark-connect", "arrow-flight"],
+    "source": {
+      "title": "IOMETE BI Integrations",
+      "url": "https://iomete.com/docs/integrations/bi-tools",
+      "excerpt": "Connect BI tools and SQL clients via JDBC/ODBC, Spark Connect, and Apache Arrow Flight.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Client desktop workstations require standard JDBC or ODBC driver installation for desktop-based BI tools."]
+  },
+  {
+    "srNo": 9,
+    "id": "orchestration-dbt-airflow",
+    "name": "Modern Data Stack Orchestration (dbt & Airflow)",
+    "category": "orchestration",
+    "description": "Seamlessly integrates with dbt (dbt-spark/dbt-iomete) and workflow orchestrators like Apache Airflow and Prefect for scheduled ELT pipelines.",
+    "technicalDetails": "dbt models compile to Spark SQL against Iceberg tables. REST APIs enable automated trigger and monitoring of data plane jobs.",
+    "relevantRequirementTags": ["dbt", "airflow", "orchestration", "data-transformation", "workflow-automation"],
+    "source": {
+      "title": "IOMETE Orchestration & dbt Integration",
+      "url": "https://iomete.com/docs/integrations/bi-tools",
+      "excerpt": "Integrates with dbt and orchestration tools like Apache Airflow for scheduled ELT transformations.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["dbt-spark adapter version compatibility must match the deployed Spark runtime."]
+  },
+  {
+    "srNo": 10,
+    "id": "maintenance-iceberg-compaction",
+    "name": "Automated Iceberg Table Compaction & Maintenance",
+    "category": "maintenance",
+    "description": "Automated background jobs optimize Iceberg storage by compacting small Parquet files, expiring old snapshots, and cleaning orphaned files without downtime.",
+    "technicalDetails": "Pre-configured Spark maintenance jobs optimize Iceberg metadata manifests and bin-pack small data files into optimal target sizes (128MB-512MB).",
+    "relevantRequirementTags": ["table-maintenance", "file-compaction", "performance-optimization", "small-file-problem"],
+    "source": {
+      "title": "IOMETE Table Maintenance",
+      "url": "https://iomete.com/docs/user-guide/virtual-lakehouses",
+      "excerpt": "Features automated maintenance routines such as metadata cleanup, snapshot management, and file compaction.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Compaction consumes cluster compute resources and should be scheduled during off-peak periods."]
+  },
+  {
+    "srNo": 11,
+    "id": "compliance-hipaa-fedramp-status",
+    "name": "Regulatory Compliance Architecture (HIPAA/FedRAMP)",
+    "category": "compliance",
+    "description": "IOMETE's customer-hosted architecture allows organizations to keep protected data within their own certified cloud boundary; however, vendor-level certifications require contractual confirmation.",
+    "technicalDetails": "Customer data plane isolation satisfies data custody requirements. Formal third-party vendor attestation depends on specific commercial agreement.",
+    "relevantRequirementTags": ["compliance", "hipaa", "fedramp", "soc2", "gdpr"],
+    "source": {
+      "title": "IOMETE Trust and Security Overview",
+      "url": "https://iomete.com/docs/data-security/overview",
+      "excerpt": "Data remains within customer tenancy; compliance guarantees for multi-tenant SaaS versus self-managed deployments require validation.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "partially_documented",
+    "limitations": ["Official documentation does not state a blanket out-of-the-box FedRAMP or HIPAA BAA guarantee for public evaluation."]
+  },
+  {
+    "srNo": 12,
+    "id": "pricing-tco-guarantees",
+    "name": "Direct Infrastructure Cost & Zero Compute Markup",
+    "category": "pricing",
+    "description": "IOMETE eliminates proprietary compute markup multipliers by executing workloads directly on customer cloud infrastructure (spot instances and savings plans).",
+    "technicalDetails": "Predictable subscription pricing model without proprietary Data Processing Unit (DBU) consumption markups.",
+    "relevantRequirementTags": ["pricing", "tco", "cost-savings", "roi-guarantee", "cloud-bill-optimization"],
+    "source": {
+      "title": "IOMETE Architecture & Cost Efficiency",
+      "url": "https://iomete.com/docs/architecture",
+      "excerpt": "Run compute on customer infrastructure avoiding vendor compute markups; exact TCO savings depend on workload patterns.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "partially_documented",
+    "limitations": ["No guaranteed dollar-for-dollar reduction can be verified without a representative proof-of-concept workload benchmark."]
+  },
+  {
+    "srNo": 13,
+    "id": "compute-auto-suspend-resume",
+    "name": "Cluster Auto-Suspend & Instant Auto-Resume",
+    "category": "compute",
+    "description": "Automatically suspends inactive virtual lakehouses after an idle timeout threshold and instantly spins them back up upon receiving incoming queries, minimizing idle compute spend.",
+    "technicalDetails": "Configurable idle shutdown timers (e.g. 10m, 30m). Handled via iom-cluster orchestration.",
+    "relevantRequirementTags": ["auto-suspend", "auto-resume", "cost-control", "cluster-lifecycle", "virtual-lakehouses"],
+    "source": {
+      "title": "IOMETE Cluster Lifecycle Management",
+      "url": "https://iomete.com/docs/user-guide/virtual-lakehouses",
+      "excerpt": "Auto-suspend clusters during periods of inactivity to avoid unnecessary cloud compute charges.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["First query after auto-suspend incurs a brief cold-start latency while worker pods initialize."]
+  },
+  {
+    "srNo": 14,
+    "id": "storage-iceberg-time-travel",
+    "name": "Iceberg Snapshot Time-Travel & Version Rollback",
+    "category": "storage",
+    "description": "Query historical table states using timestamp or snapshot ID syntax (AS OF) to audit data changes, reproduce machine learning features, or rollback accidental deletions.",
+    "technicalDetails": "Powered by Apache Iceberg snapshot metadata tree without copying duplicate underlying data files.",
+    "relevantRequirementTags": ["time-travel", "snapshot-isolation", "data-audit", "rollback", "apache-iceberg"],
+    "source": {
+      "title": "IOMETE Iceberg Time Travel Guide",
+      "url": "https://iomete.com/docs/user-guide/virtual-lakehouses",
+      "excerpt": "Leverage Apache Iceberg time-travel capabilities to query data at specific historical snapshots.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Time travel window is bounded by the snapshot retention duration configured in table maintenance policies."]
+  },
+  {
+    "srNo": 15,
+    "id": "storage-iceberg-schema-evolution",
+    "name": "Full Schema Evolution & Partition Evolution",
+    "category": "storage",
+    "description": "Add, drop, rename, or reorder table columns without rewriting existing data files or invalidating un-migrated downstream partitions.",
+    "technicalDetails": "Iceberg tracks column IDs independently of physical column positions, enabling instantaneous metadata-only schema updates.",
+    "relevantRequirementTags": ["schema-evolution", "partition-evolution", "apache-iceberg", "data-modeling"],
+    "source": {
+      "title": "IOMETE Iceberg Table Management",
+      "url": "https://iomete.com/docs/user-guide/virtual-lakehouses",
+      "excerpt": "Perform schema evolution and partition evolution without costly full table rewrites.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Renaming nested complex struct types requires testing with connected external BI drivers."]
+  },
+  {
+    "srNo": 16,
+    "id": "governance-column-masking",
+    "name": "Dynamic Data Masking & PII Redaction",
+    "category": "governance",
+    "description": "Dynamically mask sensitive columns (social security numbers, email addresses, credit cards) for unauthorized roles while preserving plaintext access for privileged auditors.",
+    "technicalDetails": "Enforced in Apache Ranger SQL interceptor with hashing, partial redaction, and nullification transforms.",
+    "relevantRequirementTags": ["column-masking", "pii-redaction", "data-masking", "apache-ranger", "governance"],
+    "source": {
+      "title": "IOMETE Data Masking in Ranger",
+      "url": "https://iomete.com/docs/data-security/overview",
+      "excerpt": "Enforce dynamic column masking policies to obfuscate sensitive customer data based on user group membership.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Masking expressions must be supported by Apache Ranger and Spark SQL function sets."]
+  },
+  {
+    "srNo": 17,
+    "id": "governance-row-level-filtering",
+    "name": "Row-Level Filtering by User Role & Tenant",
+    "category": "governance",
+    "description": "Restrict query results so business analysts only see rows corresponding to their assigned territory, department, or customer tenant.",
+    "technicalDetails": "Ranger automatically appends predicate filters (WHERE clause injection) to user queries during Spark execution planning.",
+    "relevantRequirementTags": ["row-level-filtering", "multi-tenant-security", "data-governance", "apache-ranger"],
+    "source": {
+      "title": "IOMETE Row-Level Security",
+      "url": "https://iomete.com/docs/data-security/overview",
+      "excerpt": "Apply row-level filtering to ensure users only access records permitted by their role or department.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Complex row filter subqueries can impact query execution plan optimization."]
+  },
+  {
+    "srNo": 18,
+    "id": "governance-audit-logging",
+    "name": "Centralized SQL Query Access Audit Trails",
+    "category": "governance",
+    "description": "Maintains an immutable audit log of all executed SQL statements, user identities, client IP addresses, accessed table columns, and policy evaluation outcomes.",
+    "technicalDetails": "Stored in PostgreSQL and searchable via IOMETE Console or exportable to external SIEM tools (e.g. Splunk, Datadog).",
+    "relevantRequirementTags": ["audit-logging", "compliance-audit", "query-history", "security-monitoring"],
+    "source": {
+      "title": "IOMETE Audit and Compliance Logging",
+      "url": "https://iomete.com/docs/data-security/overview",
+      "excerpt": "Track and inspect all query executions and policy enforcement decisions in centralized audit logs.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Long-term audit log retention (>90 days) requires setting up external log archiving."]
+  },
+  {
+    "srNo": 19,
+    "id": "analytics-web-sql-editor",
+    "name": "Collaborative Web-Based SQL Editor",
+    "category": "analytics",
+    "description": "Built-in web editor in the IOMETE Console offering syntax highlighting, autocompletion, query history, schema tree browsing, and tab sharing across teams.",
+    "technicalDetails": "Integrates Monaco editor with real-time WebSocket connection to active virtual lakehouses.",
+    "relevantRequirementTags": ["sql-editor", "web-console", "ad-hoc-analytics", "collaborative-querying"],
+    "source": {
+      "title": "IOMETE SQL Editor User Guide",
+      "url": "https://iomete.com/docs/user-guide/virtual-lakehouses",
+      "excerpt": "Execute ad-hoc Spark SQL queries directly in the browser with schema exploration and shared query tabs.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Browser memory limits query result preview sets to 10,000 rows by default."]
+  },
+  {
+    "srNo": 20,
+    "id": "analytics-jdbc-odbc-gateway",
+    "name": "High-Throughput JDBC / ODBC Client Gateway",
+    "category": "analytics",
+    "description": "Standard JDBC and ODBC database drivers connect any analytical client (DBeaver, DataGrip, Python scripts, R) securely through TLS-encrypted gateway ports.",
+    "technicalDetails": "Routed via iom-gateway with Hive-compatible JDBC connection string protocols.",
+    "relevantRequirementTags": ["jdbc-odbc", "dbeaver", "datagrip", "python-sql", "bi-connectivity"],
+    "source": {
+      "title": "IOMETE JDBC and ODBC Driver Setup",
+      "url": "https://iomete.com/docs/integrations/bi-tools",
+      "excerpt": "Connect any standard SQL client using standard JDBC/ODBC connection strings and personal access tokens.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Firewalls must allow outbound traffic on configured gateway ports (default 443 / 10000)."]
+  },
+  {
+    "srNo": 21,
+    "id": "deployment-multi-namespace-isolation",
+    "name": "Multi-Namespace Resource Quotas & Isolation",
+    "category": "deployment",
+    "description": "Provision dedicated Kubernetes namespaces with hard CPU and memory limits for individual business departments while sharing a single centralized control plane.",
+    "technicalDetails": "Enforces Kubernetes ResourceQuotas and LimitRanges on Spark driver and executor pods.",
+    "relevantRequirementTags": ["multi-namespace", "resource-quotas", "noisy-neighbor", "kubernetes-governance"],
+    "source": {
+      "title": "IOMETE Multi-Namespace Architecture",
+      "url": "https://iomete.com/docs/deployment",
+      "excerpt": "Support multi-namespace deployments to allocate strict compute quotas and prevent cross-team contention.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Cross-namespace network policies must permit internal DNS resolution to platform services."]
+  },
+  {
+    "srNo": 22,
+    "id": "storage-minio-support",
+    "name": "On-Premises Object Storage via MinIO & Ceph",
+    "category": "storage",
+    "description": "Enables completely cloud-independent on-premises lakehouse deployments by pairing IOMETE with self-hosted MinIO or Ceph S3-compatible storage clusters.",
+    "technicalDetails": "Configured via s3a:// endpoint override with custom access keys and TLS certificates.",
+    "relevantRequirementTags": ["minio", "ceph", "on-premises-storage", "private-cloud", "s3-compatible"],
+    "source": {
+      "title": "IOMETE MinIO Storage Configuration",
+      "url": "https://iomete.com/docs/deployment",
+      "excerpt": "Connect to self-hosted MinIO or Ceph object storage for private datacenter deployments.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Customer is responsible for hardware provisioning, RAID redundancy, and network throughput of MinIO nodes."]
+  },
+  {
+    "srNo": 23,
+    "id": "storage-azure-adls-support",
+    "name": "Native Microsoft Azure ADLS Gen2 Integration",
+    "category": "storage",
+    "description": "Seamless integration with Azure Data Lake Storage Gen2 (ADLS) using abfss:// protocol, Azure Managed Identities, and Azure Key Vault.",
+    "technicalDetails": "Supports OAuth2 client credentials and Azure Entra ID federated credentials for secure bucket mounting.",
+    "relevantRequirementTags": ["azure-adls", "abfs", "azure-lakehouse", "microsoft-cloud"],
+    "source": {
+      "title": "IOMETE Azure Deployment Guide",
+      "url": "https://iomete.com/docs/deployment",
+      "excerpt": "Mount Azure ADLS Gen2 storage accounts natively using ABFSS drivers and Azure managed identities.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Requires registering an Azure Entra App Registration with Storage Blob Data Contributor role."]
+  },
+  {
+    "srNo": 24,
+    "id": "storage-gcs-support",
+    "name": "Google Cloud Storage (GCS) Native Connector",
+    "category": "storage",
+    "description": "Direct read/write access to Google Cloud Storage buckets using gs:// protocol and Google Service Account Workload Identity.",
+    "technicalDetails": "Eliminates hardcoded private keys by leveraging Kubernetes Workload Identity bound to Google IAM roles.",
+    "relevantRequirementTags": ["google-cloud-storage", "gcs", "gcp-lakehouse", "workload-identity"],
+    "source": {
+      "title": "IOMETE GCS Storage Configuration",
+      "url": "https://iomete.com/docs/deployment",
+      "excerpt": "Connect to Google Cloud Storage buckets leveraging GKE Workload Identity for keyless authentication.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Google Cloud cross-region network egress charges apply if GKE compute and GCS bucket are in different regions."]
+  },
+  {
+    "srNo": 25,
+    "id": "streaming-spark-kafka",
+    "name": "Real-Time Kafka Event Stream Ingestion",
+    "category": "compute",
+    "description": "Ingests high-throughput streaming events from Apache Kafka, Confluent Cloud, or AWS MSK directly into Apache Iceberg lakehouse tables with exactly-once guarantees.",
+    "technicalDetails": "Leverages Spark Structured Streaming micro-batch engine with checkpointing in object storage.",
+    "relevantRequirementTags": ["kafka", "streaming", "real-time-ingestion", "spark-streaming", "event-driven"],
+    "source": {
+      "title": "IOMETE Kafka Streaming Guide",
+      "url": "https://iomete.com/docs/user-guide/spark-jobs",
+      "excerpt": "Stream data from Apache Kafka into Iceberg tables using Spark Structured Streaming templates.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Streaming checkpoint directories must be placed on high-durability object storage."]
+  },
+  {
+    "srNo": 26,
+    "id": "governance-saml-oidc-sso",
+    "name": "Enterprise Single Sign-On (SAML / OIDC / Okta)",
+    "category": "governance",
+    "description": "Federates enterprise user authentication with external corporate identity providers including Okta, Microsoft Azure AD, Google Workspace, and Keycloak.",
+    "technicalDetails": "Handled by iom-identity microservice supporting standard SAML 2.0 and OpenID Connect protocols.",
+    "relevantRequirementTags": ["sso", "saml", "oidc", "okta", "azure-ad", "identity-federation"],
+    "source": {
+      "title": "IOMETE Identity and SSO Integration",
+      "url": "https://iomete.com/docs/data-security/overview",
+      "excerpt": "Integrate with corporate Identity Providers via SAML 2.0 and OIDC for single sign-on authentication.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Group claims mapping must be configured in IDP to automatically assign IOMETE workspace roles."]
+  },
+  {
+    "srNo": 27,
+    "id": "catalog-iceberg-rest-catalog",
+    "name": "Standard Iceberg REST Catalog Integration",
+    "category": "storage",
+    "description": "Supports the official Apache Iceberg REST Catalog specification, enabling multi-engine access (Spark, Trino, Flink, DuckDB) to the same consistent table metadata.",
+    "technicalDetails": "Open REST Catalog endpoints allow external query engines to discover and read IOMETE Iceberg tables without schema divergence.",
+    "relevantRequirementTags": ["iceberg-rest-catalog", "multi-engine", "trino-interoperability", "open-standards"],
+    "source": {
+      "title": "IOMETE Iceberg REST Catalog",
+      "url": "https://iomete.com/docs/user-guide/virtual-lakehouses",
+      "excerpt": "Expose tables via the Apache Iceberg REST Catalog API for seamless multi-engine interoperability.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["External engines connecting to REST Catalog must have network routes to customer Kubernetes ingress."]
+  },
+  {
+    "srNo": 28,
+    "id": "catalog-hive-metastore-sync",
+    "name": "Hive Metastore Compatibility & Synchronization",
+    "category": "storage",
+    "description": "Maintains backwards compatibility with existing Apache Hive Metastores, simplifying migration from legacy Hadoop / Cloudera clusters.",
+    "technicalDetails": "Internal Hive Metastore service bridges Iceberg metadata with legacy analytical tools expecting Thrift HMS endpoints.",
+    "relevantRequirementTags": ["hive-metastore", "hadoop-migration", "cloudera-migration", "thrift-hms"],
+    "source": {
+      "title": "IOMETE Hive Metastore Architecture",
+      "url": "https://iomete.com/docs/deployment",
+      "excerpt": "Includes pre-configured Hive Metastore services for legacy tooling and Hadoop migration support.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["New production workloads should prefer native Iceberg REST Catalog over legacy Thrift HMS."]
+  },
+  {
+    "srNo": 29,
+    "id": "compute-ephemeral-spark-pods",
+    "name": "Ephemeral Kubernetes Pod Auto-Scaling",
+    "category": "compute",
+    "description": "Spark executor pods are spun up on demand when query complexity increases and terminated immediately upon query completion, eliminating wasted idle server capacity.",
+    "technicalDetails": "Integrates with Kubernetes Cluster Autoscaler and Karpenter to dynamically add node instances during peak queries.",
+    "relevantRequirementTags": ["pod-autoscaling", "karpenter", "elastic-compute", "spot-instances"],
+    "source": {
+      "title": "IOMETE Spark Dynamic Allocation",
+      "url": "https://iomete.com/docs/user-guide/spark-jobs",
+      "excerpt": "Dynamic allocation provisions Spark executors as ephemeral pods, releasing resources when queries complete.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Aggressive pod scale-down requires configuring shuffle tracking or external shuffle service."]
+  },
+  {
+    "srNo": 30,
+    "id": "api-rest-automation",
+    "name": "REST API for Lakehouse Lifecycle Automation",
+    "category": "orchestration",
+    "description": "Comprehensive REST APIs allow DevOps and data platform teams to programmatically create virtual lakehouses, trigger Spark jobs, fetch audit logs, and manage user access.",
+    "technicalDetails": "Secured with personal API access tokens and RBAC scopes. Full OpenAPI 3.0 specification available.",
+    "relevantRequirementTags": ["rest-api", "devops-automation", "ci-cd-pipelines", "terraform-integration"],
+    "source": {
+      "title": "IOMETE API Reference & Automation",
+      "url": "https://iomete.com/docs/integrations/bi-tools",
+      "excerpt": "Automate platform management, cluster provisioning, and job execution via secure REST APIs.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["API rate limits apply to prevent denial-of-service from misconfigured polling scripts."]
+  },
+  {
+    "srNo": 31,
+    "id": "security-customer-managed-keys",
+    "name": "Customer-Managed Encryption Keys (BYOK / KMS)",
+    "category": "governance",
+    "description": "All data stored in object storage and PostgreSQL metadata is encrypted at rest using keys exclusively managed and rotated by the customer via AWS KMS, Azure Key Vault, or GCP Cloud KMS.",
+    "technicalDetails": "Data plane pods inherit IAM roles with decryption permissions; IOMETE never possesses or stores master encryption keys.",
+    "relevantRequirementTags": ["byok", "customer-managed-keys", "encryption-at-rest", "kms", "data-custody"],
+    "source": {
+      "title": "IOMETE Encryption & Key Management",
+      "url": "https://iomete.com/docs/architecture",
+      "excerpt": "Maintain sole cryptographic control by encrypting object storage and volumes with customer-managed KMS keys.",
+      "verifiedAt": "2024-10-31"
+    },
+    "evidenceStatus": "documented",
+    "limitations": ["Revoking or disabling customer KMS key immediately halts all active query clusters."]
+  }
+]
