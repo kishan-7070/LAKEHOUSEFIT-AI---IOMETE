@@ -39,7 +39,11 @@ function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedCompany = company.trim();
+
+    if (!trimmedName || !trimmedEmail || !password) {
       setError("Please complete all required fields.");
       return;
     }
@@ -51,12 +55,17 @@ function RegisterForm() {
     setLoading(true);
     setError(null);
 
-    const result = await register({ name, email, password, role, company });
+    const result = await register({
+      name: trimmedName,
+      email: trimmedEmail,
+      password,
+      role,
+      company: trimmedCompany,
+    });
     setLoading(false);
 
     if (result.success) {
-      router.push(redirectUrl);
-      router.refresh();
+      window.location.href = redirectUrl;
     } else {
       setError(result.error || "Registration failed");
     }
@@ -80,9 +89,19 @@ function RegisterForm() {
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-            <span>{error}</span>
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center justify-between space-x-2">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+            {error.includes("already exists") && (
+              <Link
+                href={`/auth/login${redirectUrl !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
+                className="font-bold text-rose-900 underline hover:text-black shrink-0 ml-2"
+              >
+                Sign In &rarr;
+              </Link>
+            )}
           </div>
         )}
 

@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const result = RegisterSchema.safeParse(body);
     if (!result.success) {
+      const firstError = result.error.issues[0]?.message || "Validation error. Please verify your details.";
       return NextResponse.json(
-        { success: false, error: "Validation error. Please verify your details.", details: result.error.flatten() },
+        { success: false, error: firstError, details: result.error.flatten() },
         { status: 400 }
       );
     }
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("POST /api/auth/register error:", error);
     return NextResponse.json(
-      { success: false, error: "An unexpected error occurred during registration. Please try again." },
+      { success: false, error: (error as Error).message || "An unexpected error occurred during registration. Please try again." },
       { status: 500 }
     );
   }

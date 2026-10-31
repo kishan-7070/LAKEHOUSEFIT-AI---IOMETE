@@ -36,19 +36,19 @@ function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || !password) {
       setError("Please fill in both email and password.");
       return;
     }
     setLoading(true);
     setError(null);
 
-    const result = await login(email, password);
+    const result = await login(trimmedEmail, password);
     setLoading(false);
 
     if (result.success) {
-      router.push(redirectUrl);
-      router.refresh();
+      window.location.href = redirectUrl;
     } else {
       setError(result.error || "Login failed");
     }

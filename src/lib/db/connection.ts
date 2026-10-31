@@ -19,7 +19,7 @@ interface ConnectionStatus {
   message: string;
 }
 
-let isConnecting = false;
+let connectionPromise: Promise<boolean> | null = null;
 let lastFailureTime = 0;
 const FAILURE_COOLDOWN_MS = 15000; // Cache connection failure for 15s to prevent stalling requests
 
@@ -52,28 +52,41 @@ export async function connectToDatabase(): Promise<ConnectionStatus> {
     };
   }
 
-  if (isConnecting) {
-    return {
-      isConnected: false,
-      mode: "in_memory",
-      message: "Connecting to MongoDB...",
-    };
+  // If another request is currently connecting, await the existing connection promise
+  if (connectionPromise) {
+    try {
+      await connectionPromise;
+      if ((mongoose.connection.readyState as number) === 1) {
+        return {
+          isConnected: true,
+          mode: "mongodb",
+          message: "Connected to MongoDB.",
+        };
+      }
+    } catch {
+      // Fall through to error handling
+    }
   }
 
   try {
-    isConnecting = true;
-    await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000,
-    });
-    isConnecting = false;
+    connectionPromise = (async () => {
+      await mongoose.connect(uri, {
+        serverSelectionTimeoutMS: 5000,
+      });
+      return true;
+    })();
+
+    await connectionPromise;
+    connectionPromise = null;
     lastFailureTime = 0;
+
     return {
       isConnected: true,
       mode: "mongodb",
       message: "Connected to MongoDB successfully.",
     };
   } catch (error) {
-    isConnecting = false;
+    connectionPromise = null;
     lastFailureTime = Date.now();
     console.warn("MongoDB connection failed; falling back to in-memory store:", (error as Error).message);
     return {
