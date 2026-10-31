@@ -91,7 +91,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              {user?.email} &middot; {user?.company || "LakehouseFit AI Workspace"} &middot; Connected to MongoDB
+              {user?.email} &middot; {user?.company || "LakehouseFit AI Workspace"} 
             </p>
           </div>
         </div>
