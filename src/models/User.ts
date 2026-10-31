@@ -31,6 +31,8 @@ const UserSchema = new Schema<UserDocument>(
   },
   {
     timestamps: true,
+    bufferCommands: false,
+    autoIndex: false,
   }
 );
 

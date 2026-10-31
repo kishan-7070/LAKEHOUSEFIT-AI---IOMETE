@@ -48,6 +48,8 @@ const ReportSchema = new Schema<ReportDocument>(
   },
   {
     timestamps: true,
+    bufferCommands: false,
+    autoIndex: false,
   }
 );
 

@@ -41,6 +41,8 @@ const AssessmentSchema = new Schema<AssessmentDocument>(
   },
   {
     timestamps: true,
+    bufferCommands: false,
+    autoIndex: false,
   }
 );
 
