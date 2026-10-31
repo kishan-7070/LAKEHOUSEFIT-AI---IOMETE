@@ -102,7 +102,7 @@ export default function DashboardPage() {
             className="inline-flex items-center px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200 transition-colors"
           >
             <User className="w-3.5 h-3.5 mr-1.5 text-slate-600" />
-            <span>Profile &amp; Photo</span>
+            <span>Profile</span>
           </Link>
 
           <Link
