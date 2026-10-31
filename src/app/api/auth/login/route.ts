@@ -4,10 +4,11 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/db/connection";
 import { UserModel } from "@/models/User";
 import { signAuthToken } from "@/lib/auth/jwt";
+import { inMemoryStore } from "@/lib/db/in-memory-store";
 
 const LoginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(1, "Please enter your password"),
+  email: z.string().email("Please enter a valid email address").max(100),
+  password: z.string().min(1, "Please enter your password").max(72),
 });
 
 export async function POST(req: NextRequest) {
@@ -21,18 +22,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await connectToDatabase();
-
     const { email, password } = result.data;
-    const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
-    if (!user) {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const dbStatus = await connectToDatabase();
+    let userRecord: {
+      id: string;
+      email: string;
+      name: string;
+      passwordHash: string;
+      role: string;
+      company?: string;
+      avatar?: string | null;
+    } | null = null;
+
+    if (dbStatus.isConnected) {
+      try {
+        const doc = await UserModel.findOne({ email: normalizedEmail }).lean();
+        if (doc) {
+          userRecord = doc as any;
+        }
+      } catch (err) {
+        console.warn("MongoDB read failed in login:", (err as Error).message);
+      }
+    }
+
+    // Fallback to in-memory store if DB is offline or user was registered in-memory
+    if (!userRecord) {
+      userRecord = inMemoryStore.getUserByEmail(normalizedEmail);
+    }
+
+    if (!userRecord) {
       return NextResponse.json(
         { success: false, error: "Invalid email or password." },
         { status: 401 }
       );
     }
 
-    const isValid = await bcrypt.compare(password, user.passwordHash);
+    const isValid = await bcrypt.compare(password, userRecord.passwordHash);
     if (!isValid) {
       return NextResponse.json(
         { success: false, error: "Invalid email or password." },
@@ -40,24 +67,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Sign safe token (avatar is NOT stored in token cookie to keep size under 4KB)
     const token = await signAuthToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      company: user.company,
-      avatar: user.avatar || null,
+      userId: userRecord.id,
+      email: userRecord.email,
+      name: userRecord.name,
+      role: userRecord.role,
+      company: userRecord.company,
     });
 
     const response = NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        company: user.company,
-        avatar: user.avatar || null,
+        id: userRecord.id,
+        userId: userRecord.id,
+        email: userRecord.email,
+        name: userRecord.name,
+        role: userRecord.role,
+        company: userRecord.company,
+        avatar: userRecord.avatar || null,
       },
       message: "Signed in successfully.",
     });
@@ -66,14 +94,15 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 7 * 24 * 60 * 60,
       path: "/",
     });
 
     return response;
   } catch (error) {
+    console.error("POST /api/auth/login error:", error);
     return NextResponse.json(
-      { success: false, error: (error as Error).message },
+      { success: false, error: "Unable to complete sign in. Please try again." },
       { status: 500 }
     );
   }

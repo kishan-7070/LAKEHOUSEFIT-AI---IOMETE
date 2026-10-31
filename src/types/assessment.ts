@@ -50,6 +50,7 @@ export interface AssessmentInputData {
 
 export interface Assessment {
   id: string;
+  ownerId?: string | null;
   organization: AssessmentOrganization;
   environment: AssessmentEnvironment;
   requirements: NormalizedRequirement[];

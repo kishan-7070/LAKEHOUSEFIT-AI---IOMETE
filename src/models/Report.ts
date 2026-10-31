@@ -9,6 +9,7 @@ const ReportSchema = new Schema<ReportDocument>(
   {
     id: { type: String, required: true, unique: true, index: true },
     assessmentId: { type: String, required: true, index: true },
+    ownerId: { type: String, default: null, index: true },
     title: { type: String, required: true },
     organizationName: { type: String, required: true },
     executiveSummary: { type: String, required: true },

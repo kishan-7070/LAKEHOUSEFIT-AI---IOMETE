@@ -2,29 +2,53 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
-const JWT_SECRET_STRING = process.env.JWT_SECRET || "lakehousefit-ai-production-jwt-secret-key-32chars";
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
-
 export interface AuthTokenPayload {
   userId: string;
   email: string;
   name: string;
   role: string;
   company?: string;
-  avatar?: string | null;
+}
+
+function getSecretKey(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    if (!secret || secret.length < 32) {
+      throw new Error(
+        "CRITICAL SECURITY CONFIGURATION ERROR: JWT_SECRET environment variable is missing or shorter than 32 characters in production."
+      );
+    }
+    return new TextEncoder().encode(secret);
+  }
+  // In development, warn if unset
+  if (!secret) {
+    console.warn("SECURITY WARNING: JWT_SECRET is not set in development. Using a local development fallback.");
+  }
+  return new TextEncoder().encode(secret || "lakehousefit-ai-dev-local-secret-32chars-min-length");
 }
 
 export async function signAuthToken(payload: AuthTokenPayload): Promise<string> {
-  return await new SignJWT({ ...payload })
+  // Explicitly sanitize token payload so large fields like base64 avatars never enter cookies
+  const safePayload: AuthTokenPayload = {
+    userId: payload.userId,
+    email: payload.email,
+    name: payload.name,
+    role: payload.role,
+    company: payload.company || "",
+  };
+
+  const secret = getSecretKey();
+  return await new SignJWT({ ...safePayload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(JWT_SECRET);
+    .sign(secret);
 }
 
 export async function verifyAuthToken(token: string): Promise<AuthTokenPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const secret = getSecretKey();
+    const { payload } = await jwtVerify(token, secret);
     return payload as unknown as AuthTokenPayload;
   } catch {
     return null;

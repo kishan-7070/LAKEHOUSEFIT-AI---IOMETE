@@ -7,8 +7,9 @@ import { connectToDatabase, getDatabaseMode } from "@/lib/db/connection";
 import { enhanceAssessmentWithAi } from "@/lib/ai/provider";
 import { AssessmentModel } from "@/models/Assessment";
 import { ReportModel } from "@/models/Report";
-import { AssessmentSubmissionInput } from "@/lib/validation/assessment-schema";
-import sampleScenarios from "@/data/sample-scenarios.json";
+import { AssessmentSubmissionSchema, AssessmentSubmissionInput } from "@/lib/validation/assessment-schema";
+import { getSampleScenario, isSampleScenario } from "@/lib/evidence/scenarios";
+import { getUserFromRequest } from "@/lib/auth/jwt";
 
 export async function POST(
   req: NextRequest,
@@ -16,27 +17,104 @@ export async function POST(
 ) {
   try {
     const { id } = params;
+    const tokenUser = await getUserFromRequest(req);
+    const isSample = isSampleScenario(id);
 
-    // Check if body provides submission input directly, or fetch from store
+    // 1. Check if body provides submission input directly
     let inputData: AssessmentSubmissionInput | null = null;
+    let bodyProvided = false;
 
     try {
       const body = await req.json();
-      if (body && body.organization && body.environment) {
-        inputData = body as AssessmentSubmissionInput;
+      if (body && (body.organization || body.environment)) {
+        bodyProvided = true;
+        const parseResult = AssessmentSubmissionSchema.safeParse(body);
+        if (!parseResult.success) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Invalid assessment submission input",
+              details: parseResult.error.format(),
+            },
+            { status: 400 }
+          );
+        }
+        inputData = parseResult.data;
       }
     } catch {
-      // Body empty or not JSON, load from existing assessment
+      // Body empty or not valid JSON; fallback to loading existing stored assessment
     }
 
+    // 2. Load existing assessment from memory or MongoDB
     let existingAssessment = inMemoryStore.getAssessment(id);
+    if (!existingAssessment && !isSample) {
+      const dbStatus = await connectToDatabase();
+      if (dbStatus.isConnected) {
+        try {
+          const doc = await AssessmentModel.findOne({ id }).lean();
+          if (doc) {
+            existingAssessment = doc as any;
+          }
+        } catch (dbErr) {
+          console.warn("MongoDB assessment lookup failed:", (dbErr as Error).message);
+        }
+      }
+    }
 
+    // 3. Ownership / Authorization Check
+    if (existingAssessment && existingAssessment.ownerId && !isSample) {
+      if (!tokenUser || tokenUser.userId !== existingAssessment.ownerId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Access denied. You do not own this assessment.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // 4. Return cached report if already analyzed and no new body was provided
+    if (!bodyProvided) {
+      let cachedReport = inMemoryStore.getReportByAssessmentId(id) || inMemoryStore.getReport(id);
+      if (!cachedReport && !isSample) {
+        const dbStatus = await connectToDatabase();
+        if (dbStatus.isConnected) {
+          try {
+            const reportDoc = await ReportModel.findOne({ assessmentId: id }).lean();
+            if (reportDoc) {
+              cachedReport = reportDoc as any;
+            }
+          } catch (dbErr) {
+            console.warn("MongoDB report lookup failed:", (dbErr as Error).message);
+          }
+        }
+      }
+
+      if (cachedReport) {
+        return NextResponse.json({
+          success: true,
+          assessmentId: id,
+          reportId: cachedReport.id,
+          findings: cachedReport.findings,
+          audit: auditFindingsAccuracy(cachedReport.findings),
+          conflicts: [],
+          nextSteps: cachedReport.recommendedNextSteps,
+          executiveSummary: cachedReport.executiveSummary,
+          isAiEnhanced: cachedReport.isAiEnhanced,
+          aiProvider: cachedReport.isAiEnhanced ? "cached_ai_report" : "deterministic_engine",
+          storageMode: getDatabaseMode(),
+          cached: true,
+        });
+      }
+    }
+
+    // 5. If inputData was not in the body, reconstruct from existing assessment or sample
     if (!inputData) {
       if (!existingAssessment) {
-        // Check sample scenarios
-        const sample = sampleScenarios.find(s => s.id === id);
+        const sample = getSampleScenario(id);
         if (sample) {
-          inputData = sample.input as any;
+          inputData = sample.input;
         } else {
           return NextResponse.json(
             { success: false, error: "Assessment record not found to analyze." },
@@ -44,7 +122,6 @@ export async function POST(
           );
         }
       } else {
-        // Reconstruct input data from stored assessment
         inputData = {
           organization: {
             industry: existingAssessment.organization.industry || "other",
@@ -54,7 +131,7 @@ export async function POST(
             assessmentGoal: existingAssessment.organization.assessmentGoal || "Data Lakehouse Evaluation",
           },
           environment: {
-            deployment: existingAssessment.environment.deployment || "customer_cloud_vpc",
+            deployment: (existingAssessment.environment.deployment as any) || "customer_cloud_vpc",
             dataSources: existingAssessment.environment.dataSources || ["Internal Data"],
             analyticsTools: existingAssessment.environment.analyticsTools || [],
             dataVolume: existingAssessment.environment.dataVolume || null,
@@ -71,22 +148,24 @@ export async function POST(
 
     if (!inputData) {
       return NextResponse.json(
-        { success: false, error: "Invalid assessment data." },
-        { status: 400 }
+        { success: false, error: "Assessment record not found to analyze." },
+        { status: 404 }
       );
     }
 
-    // Run matching engine
+    const ownerId = existingAssessment?.ownerId || (!isSample ? tokenUser?.userId || null : null);
+
+    // 6. Run matching engine
     const engine = new MatchingEngine();
     const normalizedRequirements = engine.normalizeRequirements(inputData);
-    const findings = engine.evaluateRequirements(normalizedRequirements, inputData);
     const conflicts = detectRequirementConflicts(inputData);
+    const findings = engine.evaluateRequirements(normalizedRequirements, inputData);
     const nextSteps = engine.generateNextSteps(findings, conflicts);
 
-    // Validate evidence accuracy according to PRD release gate rules
+    // 7. Validate evidence accuracy
     const auditResult = auditFindingsAccuracy(findings);
 
-    // Draft baseline report
+    // 8. Draft baseline report
     const baseReport = engine.generateReport(
       id,
       inputData.organization,
@@ -94,10 +173,11 @@ export async function POST(
       findings,
       nextSteps,
       conflicts,
-      false
+      false,
+      ownerId
     );
 
-    // Optional AI enhancement (strictly grounded, failsafe fallback)
+    // 9. Optional AI enhancement (grounded, failsafe fallback)
     const aiResult = await enhanceAssessmentWithAi(
       inputData.organization,
       inputData.environment,
@@ -110,42 +190,39 @@ export async function POST(
       baseReport.isAiEnhanced = true;
     }
 
-    // Save report in memory store
+    // 10. Save in memory store
     inMemoryStore.saveReport(baseReport);
 
-    // Update assessment status
-    if (existingAssessment) {
-      existingAssessment.requirements = normalizedRequirements;
-      existingAssessment.status = "completed";
-      inMemoryStore.saveAssessment(existingAssessment);
-    } else {
-      inMemoryStore.saveAssessment({
-        id,
-        organization: inputData.organization,
-        environment: inputData.environment,
-        requirements: normalizedRequirements,
-        status: "completed",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
+    const updatedAssessment = {
+      id,
+      ownerId,
+      organization: inputData.organization,
+      environment: inputData.environment,
+      requirements: normalizedRequirements,
+      status: "completed" as const,
+      createdAt: existingAssessment?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    inMemoryStore.saveAssessment(updatedAssessment);
 
-    // If MongoDB is available, persist there as well
+    // 11. Save in MongoDB if connected
     const dbStatus = await connectToDatabase();
     if (dbStatus.isConnected) {
       try {
         await ReportModel.findOneAndUpdate(
           { assessmentId: id },
-          { ...baseReport },
+          { ...baseReport, ownerId },
           { upsert: true, new: true }
         );
         await AssessmentModel.findOneAndUpdate(
           { id },
           {
+            ownerId,
             organization: inputData.organization,
             environment: inputData.environment,
             requirements: normalizedRequirements,
             status: "completed",
+            updatedAt: new Date().toISOString(),
           },
           { upsert: true }
         );

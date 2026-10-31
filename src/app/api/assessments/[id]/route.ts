@@ -3,7 +3,8 @@ import { inMemoryStore } from "@/lib/db/in-memory-store";
 import { connectToDatabase, getDatabaseMode } from "@/lib/db/connection";
 import { AssessmentModel } from "@/models/Assessment";
 import { ReportModel } from "@/models/Report";
-import sampleScenarios from "@/data/sample-scenarios.json";
+import { getUserFromRequest } from "@/lib/auth/jwt";
+import { getSampleScenario, isSampleScenario } from "@/lib/evidence/scenarios";
 
 export async function GET(
   req: NextRequest,
@@ -29,17 +30,18 @@ export async function GET(
           }
         }
       } catch (err) {
-        console.warn("MongoDB read failed:", (err as Error).message);
+        console.warn("MongoDB read failed in GET /api/assessments/:id:", (err as Error).message);
       }
     }
   }
 
   // 3. Check if it's one of the sample scenarios
   if (!assessment) {
-    const sample = sampleScenarios.find(s => s.id === id);
+    const sample = getSampleScenario(id);
     if (sample) {
       assessment = {
         id: sample.id,
+        ownerId: null,
         organization: sample.input.organization,
         environment: sample.input.environment,
         requirements: sample.input.selectedChallenges.map((c, idx) => ({
@@ -68,6 +70,22 @@ export async function GET(
     );
   }
 
+  // 4. Authorization / Ownership check
+  // Public sample scenarios have ownerId: null and are accessible to anyone
+  const isSample = isSampleScenario(id);
+  if (assessment.ownerId && !isSample) {
+    const tokenUser = await getUserFromRequest(req);
+    if (!tokenUser || tokenUser.userId !== assessment.ownerId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Access denied. You do not have permission to view this assessment.",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   return NextResponse.json({
     success: true,
     assessment,
@@ -75,4 +93,3 @@ export async function GET(
     storageMode: getDatabaseMode(),
   });
 }
-

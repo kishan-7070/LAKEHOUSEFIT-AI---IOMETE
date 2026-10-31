@@ -6,10 +6,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
+function sanitizeRedirect(url: string | null): string {
+  if (!url) return "/dashboard";
+  // Must start with a single '/' and not '//' or '/\' to avoid open redirect attacks
+  if (url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\") && !url.includes("\\")) {
+    return url;
+  }
+  return "/dashboard";
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || "/dashboard";
+  const redirectUrl = sanitizeRedirect(searchParams.get("redirect"));
 
   const { user, login } = useAuth();
 

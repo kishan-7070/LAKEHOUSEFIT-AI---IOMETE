@@ -8,6 +8,7 @@ export interface AssessmentDocument extends Omit<IAssessment, "id">, Document {
 const AssessmentSchema = new Schema<AssessmentDocument>(
   {
     id: { type: String, required: true, unique: true, index: true },
+    ownerId: { type: String, default: null, index: true },
     organization: {
       industry: { type: String },
       companySize: { type: String },

@@ -23,9 +23,8 @@ export async function enhanceAssessmentWithAi(
 ): Promise<AiEnhancementResult> {
   const provider = process.env.AI_PROVIDER?.toLowerCase().trim();
   const apiKey = process.env.AI_API_KEY?.trim();
-  const model = process.env.AI_MODEL?.trim() || "gemini-flash-latest";
 
-  // If no AI key is configured, return deterministic output immediately
+  // If no AI key or provider is configured, return deterministic output immediately
   if (!apiKey || !provider) {
     return {
       isAiEnhanced: false,
@@ -34,6 +33,15 @@ export async function enhanceAssessmentWithAi(
       providerName: "deterministic_engine",
     };
   }
+
+  // Provider-specific default models
+  const rawModel = process.env.AI_MODEL?.trim();
+  const geminiModel = provider === "gemini" 
+    ? (rawModel && !rawModel.startsWith("gpt") ? rawModel : "gemini-1.5-flash")
+    : "";
+  const openAiModel = provider === "openai"
+    ? (rawModel && !rawModel.startsWith("gemini") ? rawModel : "gpt-4o-mini")
+    : "";
 
   try {
     const orgName = organization.companyName || "Prospective Enterprise Buyer";
@@ -70,16 +78,20 @@ Write a 2-3 paragraph plain-English executive summary for an IT decision-maker e
 Keep the tone objective, consultative, and evidence-focused.
 `;
 
+    // 1. Google Gemini via secure header authentication (no key in URL)
     if (provider === "gemini") {
-      const modelsToTry = [model, "gemini-flash-latest", "gemini-2.5-flash"];
+      const modelsToTry = [geminiModel, "gemini-1.5-flash", "gemini-flash-latest"];
 
       for (const m of modelsToTry) {
         try {
           const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": apiKey,
+              },
               body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: { maxOutputTokens: 600, temperature: 0.2 },
@@ -101,10 +113,13 @@ Keep the tone objective, consultative, and evidence-focused.
             }
           }
         } catch {
-          // Try next model if one spikes or times out
+          // Continue to next model if this one fails
         }
       }
-    } else if (provider === "openai") {
+    }
+
+    // 2. OpenAI with provider-specific model default
+    if (provider === "openai") {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -112,7 +127,7 @@ Keep the tone objective, consultative, and evidence-focused.
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: model || "gpt-4o-mini",
+          model: openAiModel,
           messages: [
             {
               role: "system",
@@ -135,13 +150,13 @@ Keep the tone objective, consultative, and evidence-focused.
             isAiEnhanced: true,
             executiveSummary: text.trim(),
             enhancedExplanations: {},
-            providerName: `OpenAI (${model})`,
+            providerName: `OpenAI (${openAiModel})`,
           };
         }
       }
     }
 
-    // Default fallback
+    // Default fallback to deterministic summary
     return {
       isAiEnhanced: false,
       executiveSummary: deterministicSummary,

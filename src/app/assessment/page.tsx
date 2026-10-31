@@ -489,7 +489,7 @@ function AssessmentWizardContent() {
                       checked={formData.environment.deployment === item.id}
                       onChange={e => setFormData({
                         ...formData,
-                        environment: { ...formData.environment, deployment: e.target.value }
+                        environment: { ...formData.environment, deployment: e.target.value as any }
                       })}
                       className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
                     />

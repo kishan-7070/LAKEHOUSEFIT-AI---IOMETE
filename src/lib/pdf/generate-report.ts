@@ -68,7 +68,7 @@ export function generateReportPdf(report: Report): Uint8Array {
   doc.setTextColor(71, 85, 105);
   const scopeLines = doc.splitTextToSize(report.scopeSummary, contentWidth);
   doc.text(scopeLines, margin, y);
-  y += scopeLines.length * 13 + 14;
+  y += scopeLines.length * 13 + 12;
 
   // Key Status Metric Summary Box
   checkPageBreak(50);
@@ -78,19 +78,31 @@ export function generateReportPdf(report: Report): Uint8Array {
 
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(203, 213, 225);
-  doc.roundedRect(margin, y, contentWidth, 42, 4, 4, "FD");
+  doc.roundedRect(margin, y, contentWidth, 38, 4, 4, "FD");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(21, 128, 61); // green
-  doc.text(`Supported Criteria: ${supportedCount}`, margin + 14, y + 25);
+  doc.text(`Supported Criteria: ${supportedCount}`, margin + 14, y + 23);
 
   doc.setTextColor(180, 83, 9); // amber
-  doc.text(`Needs Validation: ${validationCount}`, margin + 180, y + 25);
+  doc.text(`Needs Validation: ${validationCount}`, margin + 180, y + 23);
 
   doc.setTextColor(100, 116, 139); // gray
-  doc.text(`Unknown / Gaps: ${unknownCount}`, margin + 350, y + 25);
-  y += 56;
+  doc.text(`Unknown / Gaps: ${unknownCount}`, margin + 350, y + 23);
+  y += 46;
+
+  // Provenance & Audit Trail Metadata Banner
+  checkPageBreak(24);
+  doc.setFillColor(241, 245, 249);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(margin, y, contentWidth, 20, 2, 2, "FD");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  const auditString = `Audit Trail: Assessment [${report.assessmentId}] | Report [${report.id}] | Spec v${report.version || 1}.0 | Grounded in official IOMETE Docs`;
+  doc.text(auditString, margin + 8, y + 13);
+  y += 28;
 
   // --- SECTION 1: EXECUTIVE SUMMARY ---
   drawSectionTitle("1. Executive Summary");
@@ -112,9 +124,8 @@ export function generateReportPdf(report: Report): Uint8Array {
 
   for (let i = 0; i < report.findings.length; i++) {
     const finding = report.findings[i];
-    checkPageBreak(85);
 
-    // Card background
+    // Card background & borders
     const statusBg =
       finding.status === "supported"
         ? [240, 253, 244] // light green
@@ -143,76 +154,133 @@ export function generateReportPdf(report: Report): Uint8Array {
         ? [180, 83, 9]
         : [100, 116, 139];
 
-    // Finding Header
+    // Pre-calculate line sizes
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    const headerLines = doc.splitTextToSize(
+      `${i + 1}. [${finding.category.toUpperCase()}] ${finding.requirementDescription}`,
+      contentWidth - 28
+    );
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const explanationLines = doc.splitTextToSize(
+      `Assessment: ${finding.explanation}`,
+      contentWidth - 28
+    );
+
+    const evidenceItems: string[][] = [];
+    if (finding.evidenceReferences.length > 0) {
+      doc.setFontSize(8);
+      for (const capId of finding.evidenceReferences) {
+        const cap = getCapabilityById(capId);
+        if (cap) {
+          const srPrefix = cap.srNo ? `[Sr. No. ${cap.srNo}] ` : "";
+          const linkText = `• ${srPrefix}${cap.name} — Source: ${cap.source.title} (${cap.source.url})`;
+          evidenceItems.push(doc.splitTextToSize(linkText, contentWidth - 32));
+        }
+      }
+    }
+
+    const questionLines: string[][] = [];
+    if (finding.unresolvedQuestions.length > 0) {
+      doc.setFontSize(8);
+      for (const q of finding.unresolvedQuestions) {
+        questionLines.push(doc.splitTextToSize(`? ${q}`, contentWidth - 32));
+      }
+    }
+
+    // Calculate dynamic card height
+    let totalCardHeight = 14; // top padding
+    totalCardHeight += headerLines.length * 13;
+    totalCardHeight += 16; // status label
+    totalCardHeight += explanationLines.length * 12 + 6;
+    if (evidenceItems.length > 0) {
+      totalCardHeight += 14;
+      for (const lines of evidenceItems) {
+        totalCardHeight += lines.length * 11;
+      }
+      totalCardHeight += 4;
+    }
+    if (questionLines.length > 0) {
+      totalCardHeight += 14;
+      for (const lines of questionLines) {
+        totalCardHeight += lines.length * 11;
+      }
+      totalCardHeight += 4;
+    }
+    totalCardHeight += 8; // bottom padding
+
+    checkPageBreak(totalCardHeight);
+
+    // Draw card background rectangle
+    doc.setFillColor(statusBg[0], statusBg[1], statusBg[2]);
+    doc.setDrawColor(statusBorder[0], statusBorder[1], statusBorder[2]);
+    doc.setLineWidth(1);
+    doc.roundedRect(margin, y, contentWidth, totalCardHeight, 4, 4, "FD");
+
+    // Draw left border accent bar
+    doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+    doc.rect(margin, y, 4, totalCardHeight, "F");
+
+    let cardY = y + 14;
+
+    // Header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
-    doc.text(`${i + 1}. [${finding.category.toUpperCase()}] ${finding.requirementDescription}`, margin, y);
-    y += 13;
+    doc.text(headerLines, margin + 14, cardY);
+    cardY += headerLines.length * 13 + 2;
 
     // Status Pill
     doc.setFontSize(8);
     doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-    doc.text(statusLabel, margin, y);
-    y += 12;
+    doc.text(statusLabel, margin + 14, cardY);
+    cardY += 14;
 
     // Explanation
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(51, 65, 85);
-    const explanationLines = doc.splitTextToSize(`Assessment: ${finding.explanation}`, contentWidth - 10);
-    checkPageBreak(explanationLines.length * 12 + 20);
-    doc.text(explanationLines, margin + 5, y);
-    y += explanationLines.length * 12 + 6;
+    doc.text(explanationLines, margin + 14, cardY);
+    cardY += explanationLines.length * 12 + 6;
 
     // Evidence References & Links
-    if (finding.evidenceReferences.length > 0) {
+    if (evidenceItems.length > 0) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.5);
       doc.setTextColor(14, 62, 43);
-      doc.text("Supporting Evidence & Official Documentation:", margin + 5, y);
-      y += 11;
+      doc.text("Supporting Evidence & Official Documentation:", margin + 14, cardY);
+      cardY += 12;
 
-      for (const capId of finding.evidenceReferences) {
-        const cap = getCapabilityById(capId);
-        if (cap) {
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(8);
-          doc.setTextColor(3, 105, 161); // link blue
-          const srPrefix = cap.srNo ? `[Sr. No. ${cap.srNo}] ` : "";
-          const linkText = `• ${srPrefix}${cap.name} — Source: ${cap.source.title} (${cap.source.url})`;
-          const linkLines = doc.splitTextToSize(linkText, contentWidth - 15);
-          checkPageBreak(linkLines.length * 11);
-          doc.text(linkLines, margin + 10, y);
-          y += linkLines.length * 11;
-        }
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(3, 105, 161);
+      for (const lines of evidenceItems) {
+        doc.text(lines, margin + 18, cardY);
+        cardY += lines.length * 11;
       }
+      cardY += 4;
     }
 
     // Unresolved questions
-    if (finding.unresolvedQuestions.length > 0) {
-      y += 3;
+    if (questionLines.length > 0) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.5);
       doc.setTextColor(180, 83, 9);
-      doc.text("Questions for Vendor Discovery / Technical Validation:", margin + 5, y);
-      y += 11;
+      doc.text("Questions for Vendor Discovery / Technical Validation:", margin + 14, cardY);
+      cardY += 12;
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(71, 85, 105);
-      for (const q of finding.unresolvedQuestions) {
-        const qLines = doc.splitTextToSize(`? ${q}`, contentWidth - 15);
-        checkPageBreak(qLines.length * 11);
-        doc.text(qLines, margin + 10, y);
-        y += qLines.length * 11;
+      for (const lines of questionLines) {
+        doc.text(lines, margin + 18, cardY);
+        cardY += lines.length * 11;
       }
     }
 
-    y += 12;
-    doc.setDrawColor(241, 245, 249);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 10;
+    y += totalCardHeight + 10;
   }
 
   // --- SECTION 3: RECOMMENDED NEXT STEPS ---
@@ -266,4 +334,3 @@ export function generateReportPdf(report: Report): Uint8Array {
   const arrayBuffer = doc.output("arraybuffer");
   return new Uint8Array(arrayBuffer);
 }
-

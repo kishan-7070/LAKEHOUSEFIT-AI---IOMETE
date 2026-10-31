@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { inMemoryStore } from "@/lib/db/in-memory-store";
 import { connectToDatabase } from "@/lib/db/connection";
 import { ReportModel } from "@/models/Report";
+import { AssessmentModel } from "@/models/Assessment";
 import { generateReportPdf } from "@/lib/pdf/generate-report";
-import sampleScenarios from "@/data/sample-scenarios.json";
+import { getSampleScenario, isSampleScenario } from "@/lib/evidence/scenarios";
 import { MatchingEngine } from "@/lib/matching/engine";
 import { detectRequirementConflicts } from "@/lib/matching/rules";
+import { getUserFromRequest } from "@/lib/auth/jwt";
 
 export async function GET(
   req: NextRequest,
@@ -15,10 +17,49 @@ export async function GET(
     const { id } = params;
     const { searchParams } = new URL(req.url);
     const format = searchParams.get("format");
+    const isSample = isSampleScenario(id);
+
+    // 1. Authorization check for non-sample assessments
+    if (!isSample) {
+      const tokenUser = await getUserFromRequest(req);
+      if (!tokenUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Authentication required to view this report.",
+          },
+          { status: 401 }
+        );
+      }
+
+      // Check assessment ownership
+      let assessment = inMemoryStore.getAssessment(id);
+      if (!assessment) {
+        const dbStatus = await connectToDatabase();
+        if (dbStatus.isConnected) {
+          try {
+            const doc = await AssessmentModel.findOne({ id }).lean();
+            if (doc) assessment = doc as any;
+          } catch (dbErr) {
+            console.warn("MongoDB assessment lookup failed:", (dbErr as Error).message);
+          }
+        }
+      }
+
+      if (assessment && assessment.ownerId && assessment.ownerId !== tokenUser.userId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Access denied. You do not have permission to view this report.",
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     let report = inMemoryStore.getReportByAssessmentId(id) || inMemoryStore.getReport(id);
 
-    // If not in memory and MongoDB is active, check database
+    // 2. If not in memory and MongoDB is active, check database
     if (!report) {
       const dbStatus = await connectToDatabase();
       if (dbStatus.isConnected) {
@@ -35,23 +76,24 @@ export async function GET(
       }
     }
 
-    // If report is still null, generate on-the-fly for sample scenario
-    if (!report) {
-      const sample = sampleScenarios.find(s => s.id === id);
+    // 3. If report is still null, generate on-the-fly for sample scenario
+    if (!report && isSample) {
+      const sample = getSampleScenario(id);
       if (sample) {
         const engine = new MatchingEngine();
-        const reqs = engine.normalizeRequirements(sample.input as any);
-        const findings = engine.evaluateRequirements(reqs, sample.input as any);
-        const conflicts = detectRequirementConflicts(sample.input as any);
+        const reqs = engine.normalizeRequirements(sample.input);
+        const conflicts = detectRequirementConflicts(sample.input);
+        const findings = engine.evaluateRequirements(reqs, sample.input);
         const nextSteps = engine.generateNextSteps(findings, conflicts);
         report = engine.generateReport(
           sample.id,
-          sample.input.organization as any,
-          sample.input.environment as any,
+          sample.input.organization,
+          sample.input.environment,
           findings,
           nextSteps,
           conflicts,
-          false
+          false,
+          null
         );
         inMemoryStore.saveReport(report);
       }
@@ -74,7 +116,7 @@ export async function GET(
       });
     }
 
-    // Generate PDF Uint8Array
+    // 4. Generate PDF Uint8Array
     const pdfBytes = generateReportPdf(report);
 
     const safeFilename = `LakehouseFit_Report_${(report.organizationName || "Assessment").replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
@@ -91,7 +133,7 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to generate PDF report",
+        error: "Failed to generate report",
         message: (error as Error).message,
       },
       { status: 500 }

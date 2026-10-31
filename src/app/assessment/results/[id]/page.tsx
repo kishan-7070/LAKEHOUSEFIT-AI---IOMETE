@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -45,17 +45,41 @@ export default function AssessmentResultsPage() {
   const [isAiEnhanced, setIsAiEnhanced] = useState<boolean>(false);
   const [aiProvider, setAiProvider] = useState<string>("deterministic_engine");
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     if (!id) return;
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
 
     async function loadAndAnalyze() {
       try {
         setLoading(true);
         setError(null);
-        setProcessingStage("Evaluating requirements against verified IOMETE capabilities...");
+        setProcessingStage("Checking assessment records...");
 
-        // Trigger analysis API immediately without artificial delays
+        // 1. First, check if assessment and report already exist
+        const getRes = await fetch(`/api/assessments/${id}`);
+        const getData = await getRes.json();
+
+        if (getRes.ok && getData.success && getData.report) {
+          // Report already computed! Render cached results without re-analyzing
+          setAssessment(getData.assessment);
+          setReport(getData.report);
+          setFindings(getData.report.findings || []);
+          setNextSteps(getData.report.recommendedNextSteps || []);
+          setIsAiEnhanced(getData.report.isAiEnhanced || false);
+          setAiProvider(
+            getData.report.isAiEnhanced
+              ? "IOMETE Grounded AI / Google Gemini"
+              : "Deterministic Rules Engine"
+          );
+          setLoading(false);
+          return;
+        }
+
+        // 2. If no report exists yet, run analysis
+        setProcessingStage("Evaluating requirements against verified IOMETE capabilities...");
         const analyzeRes = await fetch(`/api/assessments/${id}/analyze`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -73,12 +97,12 @@ export default function AssessmentResultsPage() {
         setIsAiEnhanced(analyzeData.isAiEnhanced || false);
         setAiProvider(analyzeData.aiProvider || "deterministic_engine");
 
-        // Fetch full assessment and report in parallel for fast rendering
-        const getRes = await fetch(`/api/assessments/${id}`);
-        const getData = await getRes.json();
-        if (getData.success) {
-          setAssessment(getData.assessment);
-          setReport(getData.report);
+        // Fetch refreshed assessment and report
+        const refreshRes = await fetch(`/api/assessments/${id}`);
+        const refreshData = await refreshRes.json();
+        if (refreshData.success) {
+          setAssessment(refreshData.assessment);
+          setReport(refreshData.report);
         }
 
         setLoading(false);

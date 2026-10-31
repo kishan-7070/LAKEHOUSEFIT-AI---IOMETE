@@ -96,15 +96,44 @@ export interface ConflictWarning {
   recommendation: string;
 }
 
+export function hasWord(text: string, word: string): boolean {
+  if (!text || !word) return false;
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escaped}\\b`, "i").test(text);
+}
+
+export function hasPhrase(text: string, phrase: string): boolean {
+  if (!text || !phrase) return false;
+  const escaped = phrase
+    .trim()
+    .split(/\s+/)
+    .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("\\s+");
+  return new RegExp(`\\b${escaped}\\b`, "i").test(text);
+}
+
 export function detectRequirementConflicts(input: AssessmentSubmissionInput): ConflictWarning[] {
   const warnings: ConflictWarning[] = [];
-  const text = ((input.freeTextChallenges || "") + " " + (input.technicalRequirements?.deploymentPreference || "")).toLowerCase();
+  const text = [
+    input.freeTextChallenges || "",
+    input.technicalRequirements?.deploymentPreference || "",
+    input.technicalRequirements?.performanceExpectations || "",
+    input.technicalRequirements?.budgetConstraints || "",
+    ...(input.selectedChallenges || []),
+  ].join(" ").toLowerCase();
 
   // Conflict: Air-gapped on-premise combined with zero server management SaaS
-  if (
-    (text.includes("air-gapped") || text.includes("air gap") || input.environment.deployment === "air_gapped_on_prem") &&
-    (text.includes("zero server management") || text.includes("multi-tenant saas") || text.includes("never manage any servers"))
-  ) {
+  const hasAirGapped =
+    hasWord(text, "air-gapped") ||
+    hasPhrase(text, "air gap") ||
+    input.environment.deployment === "air_gapped_on_prem";
+  const hasZeroManagement =
+    hasPhrase(text, "zero server management") ||
+    hasPhrase(text, "multi-tenant saas") ||
+    hasPhrase(text, "never manage any servers") ||
+    hasPhrase(text, "no server management");
+
+  if (hasAirGapped && hasZeroManagement) {
     warnings.push({
       field: "deployment",
       message: "Architectural conflict: Complete air-gapped isolation requires running within a customer-controlled environment and cannot be simultaneously fulfilled by a multi-tenant public SaaS with zero infrastructure administration.",
@@ -113,14 +142,23 @@ export function detectRequirementConflicts(input: AssessmentSubmissionInput): Co
   }
 
   // Conflict: High query concurrency on small or zero-budget without sizing
-  if (
-    text.includes("high concurrency") &&
-    input.technicalRequirements?.budgetConstraints &&
-    input.technicalRequirements.budgetConstraints.toLowerCase().includes("zero")
-  ) {
+  const hasHighConcurrency =
+    hasPhrase(text, "high concurrency") ||
+    hasPhrase(text, "query concurrency") ||
+    hasPhrase(text, "concurrency contention");
+
+  const budgetStr = (input.technicalRequirements?.budgetConstraints || "").toLowerCase();
+  const hasZeroBudget =
+    hasWord(budgetStr, "zero") ||
+    hasPhrase(budgetStr, "no budget") ||
+    hasPhrase(budgetStr, "$0") ||
+    hasWord(budgetStr, "free") ||
+    hasPhrase(text, "zero budget");
+
+  if (hasHighConcurrency && hasZeroBudget) {
     warnings.push({
       field: "budgetConstraints",
-      message: "Cost expectation mismatch: Serving hundreds of concurrent interactive analytical queries requires allocated compute pods during active hours.",
+      message: "Cost expectation mismatch: Serving high-concurrency analytical queries requires allocated compute pods during active hours.",
       recommendation: "Implement auto-suspend and scheduled virtual lakehouses to keep idle costs zero while provisioning required compute during business hours.",
     });
   }

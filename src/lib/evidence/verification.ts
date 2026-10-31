@@ -54,9 +54,8 @@ export function auditFindingsAccuracy(findings: AssessmentFinding[]): EvidenceAu
     }
   }
 
-  const totalFindings = findings.length;
-  const coverage = totalFindings > 0
-    ? Math.round((supportedWithEvidenceCount / (supportedCount || 1)) * 100)
+  const coverage = supportedCount > 0
+    ? Math.round((supportedWithEvidenceCount / supportedCount) * 100)
     : 100;
 
   return {

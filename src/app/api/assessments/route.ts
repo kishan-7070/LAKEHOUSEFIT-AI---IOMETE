@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { AssessmentSubmissionSchema } from "@/lib/validation/assessment-schema";
 import { MatchingEngine } from "@/lib/matching/engine";
 import { inMemoryStore } from "@/lib/db/in-memory-store";
 import { connectToDatabase, getDatabaseMode } from "@/lib/db/connection";
 import { AssessmentModel } from "@/models/Assessment";
 import { Assessment } from "@/types/assessment";
+import { getUserFromRequest } from "@/lib/auth/jwt";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,21 +17,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Validation failed",
+          error: "Validation failed. Please verify your inputs.",
           details: validationResult.error.flatten(),
         },
         { status: 400 }
       );
     }
 
+    const tokenUser = await getUserFromRequest(req);
+    const ownerId = tokenUser?.userId || null;
+
     const inputData = validationResult.data;
     const engine = new MatchingEngine();
     const normalizedRequirements = engine.normalizeRequirements(inputData);
 
-    const assessmentId = `asm-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
+    // Cryptographically secure UUID
+    const assessmentId = `asm-${crypto.randomUUID()}`;
 
     const assessment: Assessment = {
       id: assessmentId,
+      ownerId,
       organization: inputData.organization,
       environment: inputData.environment,
       requirements: normalizedRequirements,
@@ -63,54 +70,79 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    console.error("POST /api/assessments error:", error);
     return NextResponse.json(
       {
         success: false,
-        error: "Internal server error creating assessment",
-        message: (error as Error).message,
+        error: "Unable to create assessment. Please check your network and request format.",
       },
       { status: 500 }
     );
   }
 }
 
-export async function GET() {
-  const dbStatus = await connectToDatabase();
-  let assessments: any[] = [];
-
-  if (dbStatus.isConnected) {
-    try {
-      const docs = await AssessmentModel.find({}).sort({ createdAt: -1 }).limit(50).lean();
-      if (docs && docs.length > 0) {
-        assessments = docs.map((d: any) => ({
-          id: d.id,
-          organization: d.organization,
-          requirementsCount: d.requirements?.length || 0,
-          status: d.status,
-          createdAt: d.createdAt || new Date().toISOString(),
-        }));
-      }
-    } catch (err) {
-      console.warn("MongoDB fetch in GET /api/assessments error:", (err as Error).message);
+export async function GET(req: NextRequest) {
+  try {
+    const tokenUser = await getUserFromRequest(req);
+    if (!tokenUser) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Authentication required to access workspace assessments.",
+        },
+        { status: 401 }
+      );
     }
-  }
 
-  if (assessments.length === 0) {
-    const memoryAssessments = inMemoryStore.listAssessments();
-    assessments = memoryAssessments.map(a => ({
-      id: a.id,
-      organization: a.organization,
-      requirementsCount: a.requirements.length,
-      status: a.status,
-      createdAt: a.createdAt,
-    }));
-  }
+    const dbStatus = await connectToDatabase();
+    let assessments: any[] = [];
 
-  return NextResponse.json({
-    success: true,
-    storageMode: getDatabaseMode(),
-    count: assessments.length,
-    assessments,
-  });
+    if (dbStatus.isConnected) {
+      try {
+        const docs = await AssessmentModel.find({ ownerId: tokenUser.userId })
+          .sort({ createdAt: -1 })
+          .limit(50)
+          .lean();
+
+        if (docs && docs.length > 0) {
+          assessments = docs.map((d: any) => ({
+            id: d.id,
+            organization: d.organization,
+            requirementsCount: d.requirements?.length || 0,
+            status: d.status,
+            createdAt: d.createdAt || new Date().toISOString(),
+          }));
+        }
+      } catch (err) {
+        console.warn("MongoDB fetch in GET /api/assessments error:", (err as Error).message);
+      }
+    }
+
+    if (assessments.length === 0) {
+      const memoryAssessments = inMemoryStore.listAssessments(tokenUser.userId);
+      assessments = memoryAssessments.map(a => ({
+        id: a.id,
+        organization: a.organization,
+        requirementsCount: a.requirements.length,
+        status: a.status,
+        createdAt: a.createdAt,
+      }));
+    }
+
+    return NextResponse.json({
+      success: true,
+      storageMode: getDatabaseMode(),
+      count: assessments.length,
+      assessments,
+    });
+  } catch (error) {
+    console.error("GET /api/assessments error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Unable to retrieve assessments.",
+      },
+      { status: 500 }
+    );
+  }
 }
-

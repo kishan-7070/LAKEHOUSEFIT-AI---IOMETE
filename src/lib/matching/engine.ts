@@ -1,7 +1,7 @@
 import { Capability, EvidenceStatus } from "@/types/capability";
 import { NormalizedRequirement, AssessmentSubmissionInput, AssessmentOrganization, AssessmentEnvironment } from "@/types/assessment";
 import { AssessmentFinding, RecommendedNextStep, Report } from "@/types/report";
-import { CHALLENGE_NORMALIZATION_MAP, detectRequirementConflicts, ConflictWarning } from "./rules";
+import { CHALLENGE_NORMALIZATION_MAP, detectRequirementConflicts, ConflictWarning, hasWord, hasPhrase } from "./rules";
 import capabilitiesData from "@/data/capabilities.json";
 
 export class MatchingEngine {
@@ -99,12 +99,17 @@ export class MatchingEngine {
       }
     }
 
-    // 4. Parse free-text input for special requirements or unverified claims
+    // 4. Parse free-text input for special requirements or unverified claims using word boundaries
     if (input.freeTextChallenges && input.freeTextChallenges.trim().length > 0) {
       const freeText = input.freeTextChallenges.toLowerCase();
 
       // Check for regulatory certification claims (e.g. FedRAMP, HIPAA BAA)
-      if (freeText.includes("fedramp") || freeText.includes("hipaa") || freeText.includes("soc2") || freeText.includes("baa")) {
+      if (
+        hasWord(freeText, "fedramp") ||
+        hasWord(freeText, "hipaa") ||
+        hasWord(freeText, "soc2") ||
+        hasWord(freeText, "baa")
+      ) {
         requirements.push({
           id: `req-${counter++}`,
           category: "compliance",
@@ -117,10 +122,10 @@ export class MatchingEngine {
 
       // Check for proprietary migration or unsupported proprietary format claims
       if (
-        freeText.includes("zero-copy snowflake") ||
-        freeText.includes("oracle exadata native") ||
-        freeText.includes("mainframe") ||
-        freeText.includes("vsam")
+        hasPhrase(freeText, "zero-copy snowflake") ||
+        hasPhrase(freeText, "oracle exadata native") ||
+        hasWord(freeText, "mainframe") ||
+        hasWord(freeText, "vsam")
       ) {
         requirements.push({
           id: `req-${counter++}`,
@@ -132,8 +137,14 @@ export class MatchingEngine {
         });
       }
 
-      // Check for guaranteed ROI/savings claim
-      if (freeText.includes("guarantee") && (freeText.includes("savings") || freeText.includes("cost") || freeText.includes("roi") || freeText.includes("cheaper"))) {
+      // Check for guaranteed ROI/savings claim with strict word boundaries to avoid false positives (e.g., "android" vs "roi")
+      if (
+        hasWord(freeText, "guarantee") &&
+        (hasWord(freeText, "savings") ||
+          hasWord(freeText, "cost") ||
+          hasWord(freeText, "roi") ||
+          hasWord(freeText, "cheaper"))
+      ) {
         requirements.push({
           id: `req-${counter++}`,
           category: "pricing",
@@ -226,8 +237,12 @@ export class MatchingEngine {
         continue;
       }
 
-      // Check if there are conflict warnings for this category
-      const conflictForCategory = conflicts.find(c => c.field === req.category);
+      // Check if there are conflict warnings for this category or related budget constraints
+      const conflictForCategory = conflicts.find(
+        c =>
+          c.field === req.category ||
+          (c.field === "budgetConstraints" && (req.category === "pricing" || req.category === "compute"))
+      );
 
       if (matchedCapabilities.length === 0) {
         // No match found -> Unknown
@@ -299,6 +314,30 @@ export class MatchingEngine {
             limitations: allLimitations,
           });
         }
+      }
+    }
+
+    // Ensure any unattached architectural conflict warning reaches the report findings
+    for (const conflict of conflicts) {
+      const alreadyReported = findings.some(f => f.explanation.includes(conflict.message));
+      if (!alreadyReported) {
+        findings.push({
+          requirementId: `conflict-${conflict.field}`,
+          category: conflict.field === "budgetConstraints" ? "pricing" : conflict.field,
+          requirementDescription: `Architectural Constraint Check (${conflict.field})`,
+          priority: "high",
+          status: "needs_validation",
+          relevantCapabilityIds: ["pricing-tco-guarantees", "compute-virtual-lakehouses"],
+          explanation: `Architectural Conflict Detected: ${conflict.message}`,
+          evidenceReferences: ["pricing-tco-guarantees"],
+          unresolvedQuestions: [
+            conflict.recommendation,
+            "Conduct capacity planning session to align performance SLAs with compute cluster budgets.",
+          ],
+          limitations: [
+            "LakehouseFit AI flags conflicting constraints to prevent sizing shortfalls during procurement.",
+          ],
+        });
       }
     }
 
@@ -422,7 +461,8 @@ export class MatchingEngine {
     findings: AssessmentFinding[],
     nextSteps: RecommendedNextStep[],
     conflicts: ConflictWarning[],
-    isAiEnhanced = false
+    isAiEnhanced = false,
+    ownerId?: string | null
   ): Report {
     const orgName = organization.companyName || "Prospective Enterprise Buyer";
     const supportedCount = findings.filter(f => f.status === "supported").length;
@@ -457,6 +497,7 @@ export class MatchingEngine {
     return {
       id: `rep-${Date.now().toString(36)}`,
       assessmentId,
+      ownerId: ownerId || null,
       title: `IOMETE Buyer Readiness & Technical Fit Report — ${orgName}`,
       organizationName: orgName,
       executiveSummary,

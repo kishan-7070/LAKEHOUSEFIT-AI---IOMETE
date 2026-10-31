@@ -25,6 +25,7 @@ export interface RecommendedNextStep {
 export interface Report {
   id: string;
   assessmentId: string;
+  ownerId?: string | null;
   title: string;
   organizationName: string;
   executiveSummary: string;

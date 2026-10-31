@@ -1,12 +1,4 @@
 import mongoose from "mongoose";
-import dns from "node:dns";
-
-// Ensure MongoDB Atlas SRV records can be resolved on Windows environments
-try {
-  dns.setServers(["8.8.8.8", "8.8.4.4"]);
-} catch {
-  // Ignore in environments where setting DNS servers is restricted
-}
 
 interface ConnectionStatus {
   isConnected: boolean;
@@ -15,6 +7,8 @@ interface ConnectionStatus {
 }
 
 let isConnecting = false;
+let lastFailureTime = 0;
+const FAILURE_COOLDOWN_MS = 30000; // Cache connection failure for 30s to prevent stalling requests
 
 export async function connectToDatabase(): Promise<ConnectionStatus> {
   const uri = process.env.MONGODB_URI;
@@ -35,6 +29,16 @@ export async function connectToDatabase(): Promise<ConnectionStatus> {
     };
   }
 
+  // Fast-fail if recent connection failed within cooldown window (prevents request stalling)
+  const now = Date.now();
+  if (now - lastFailureTime < FAILURE_COOLDOWN_MS) {
+    return {
+      isConnected: false,
+      mode: "in_memory",
+      message: "MongoDB connection cooling down after recent failure. Serving from in-memory store.",
+    };
+  }
+
   if (isConnecting) {
     return {
       isConnected: false,
@@ -46,9 +50,10 @@ export async function connectToDatabase(): Promise<ConnectionStatus> {
   try {
     isConnecting = true;
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 8000,
+      serverSelectionTimeoutMS: 4000, // Reduced from 8000ms for faster fallback
     });
     isConnecting = false;
+    lastFailureTime = 0;
     return {
       isConnected: true,
       mode: "mongodb",
@@ -56,11 +61,12 @@ export async function connectToDatabase(): Promise<ConnectionStatus> {
     };
   } catch (error) {
     isConnecting = false;
-    console.warn("MongoDB connection failed; falling back to in-memory demo store:", (error as Error).message);
+    lastFailureTime = Date.now();
+    console.warn("MongoDB connection failed; falling back to in-memory store for 30s:", (error as Error).message);
     return {
       isConnected: false,
       mode: "in_memory",
-      message: `Database connection error (${(error as Error).message}). Using in-memory fallback.`,
+      message: `Database connection error: ${(error as Error).message}. Using in-memory fallback.`,
     };
   }
 }
