@@ -82,7 +82,7 @@
     },
     "expectedBehavior": {
       "keyFindings": ["Decoupled Virtual Lakehouses", "Native Apache Iceberg Open Table Format", "Automated Iceberg Table Compaction & Maintenance", "Modern Data Stack Orchestration (dbt & Airflow)"],
-      "expectedStatusDistribution": "Supported for virtual lakehouses, Iceberg, and dbt; Needs validation for high-concurrency BI sizing."
+      "expectedStatusDistribution": "Supported for virtual lakehouses, Iceberg, and dbt; Needs Validation for high-concurrency BI sizing."
     }
   },
   {

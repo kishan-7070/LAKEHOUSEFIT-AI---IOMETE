@@ -34,22 +34,20 @@ LakehouseFit AI has been fully implemented, optimized for high performance, and 
 ### 2.2 Enterprise Authentication System
 - **JWT / Secure Cookie Sessions:** Uses lightweight `jose` and `bcryptjs` for secure password hashing and token management.
 - **Dedicated Auth Pages:**
-  - `/auth/login`: Email/password login with a prominent **1-Click Demo Login (Enterprise Buyer)** button designed specifically for hackathon judges to log in without typing passwords!
+  - `/auth/login`: Clean email/password sign-in.
   - `/auth/register`: User registration with role selection (IT Director, Data Lead, Buyer, CISO, Sales SE) and company name.
-- **User Dashboard (`/dashboard`):**
-  - Displays user profile and saved assessments stored in MongoDB.
+- **User Dashboard (`/dashboard`) & Profile (`/profile`):**
+  - Displays user profile, uploaded avatar image, and saved assessments stored in MongoDB.
   - Quick actions to view findings and download PDF reports in 1 click.
 - **Navbar Integration:**
-  - Shows Sign In when logged out.
-  - Shows user name, role badge, "My Workspace" link, and Sign Out button when logged in.
-- **Resilient Guest Access:** Users can still complete evaluations anonymously without being blocked by an authentication wall.
-
-### 2.3 Curated Capability Knowledge Base
-- 12 verified capabilities reviewed against official IOMETE documentation (`iomete.com/docs`).
-- Zero hallucinated features, zero fabricated certifications, zero placeholder links.
+  - Shows Register and Login buttons when logged out.
+  - Shows user avatar pill, profile dropdown menu (Profile & Photo, Workspace, Logout), and New Assessment button when logged in.
+- **Curated Capability Knowledge Base:**
+  - 31 verified capabilities reviewed against official IOMETE documentation (`iomete.com/docs`) with explicit `Sr. No. 1` to `31`.
+  - Zero hallucinated features, zero fabricated certifications, zero placeholder links.
 
 ### 2.4 Deterministic Matching & Accuracy
-- Accurate categorization into `Supported` (emerald), `Needs validation` (amber), and `Unknown` (slate).
+- Accurate categorization into `Supported` (emerald), `Needs Validation` (amber), and `Unknown` (slate).
 - Architectural conflict detection (e.g., air-gapped on-premise + zero server management SaaS).
 - Actionable next steps and paginated PDF report generation.
 

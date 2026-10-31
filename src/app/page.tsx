@@ -119,7 +119,7 @@ export default function HomePage() {
               Deterministic Matching
             </h3>
             <p className="text-slate-700 text-sm leading-relaxed">
-              The engine matches requirements against a curated knowledge base of reviewed IOMETE capabilities, assigning clear statuses: <strong>Supported</strong>, <strong>Needs validation</strong>, or <strong>Unknown</strong>.
+              The engine matches requirements against a curated knowledge base of reviewed IOMETE capabilities, assigning clear statuses: <strong>Supported</strong>, <strong>Needs Validation</strong>, or <strong>Unknown</strong>.
             </p>
             <div className="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
               Source verified &middot; Explicit unknown detection &middot; Conflict alerts

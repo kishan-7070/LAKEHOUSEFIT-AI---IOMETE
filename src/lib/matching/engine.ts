@@ -285,7 +285,7 @@ export class MatchingEngine {
             limitations: allLimitations,
           });
         } else {
-          // Partially documented -> Needs validation
+          // Partially documented -> Needs Validation
           findings.push({
             requirementId: req.id,
             category: req.category,
