@@ -1,4 +1,17 @@
+import dns from "dns";
 import mongoose from "mongoose";
+
+// Disable Mongoose query buffering globally so operations fail fast instead of hanging 10s if disconnected
+mongoose.set("bufferCommands", false);
+
+// Ensure SRV records for mongodb+srv:// can be resolved across all ISPs (e.g., Windows / Jio / Airtel)
+if (typeof dns.setServers === "function") {
+  try {
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+  } catch (dnsErr) {
+    console.warn("Could not set custom DNS servers:", (dnsErr as Error).message);
+  }
+}
 
 interface ConnectionStatus {
   isConnected: boolean;
@@ -8,7 +21,7 @@ interface ConnectionStatus {
 
 let isConnecting = false;
 let lastFailureTime = 0;
-const FAILURE_COOLDOWN_MS = 30000; // Cache connection failure for 30s to prevent stalling requests
+const FAILURE_COOLDOWN_MS = 15000; // Cache connection failure for 15s to prevent stalling requests
 
 export async function connectToDatabase(): Promise<ConnectionStatus> {
   const uri = process.env.MONGODB_URI;
@@ -50,7 +63,7 @@ export async function connectToDatabase(): Promise<ConnectionStatus> {
   try {
     isConnecting = true;
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 4000, // Reduced from 8000ms for faster fallback
+      serverSelectionTimeoutMS: 5000,
     });
     isConnecting = false;
     lastFailureTime = 0;
@@ -62,7 +75,7 @@ export async function connectToDatabase(): Promise<ConnectionStatus> {
   } catch (error) {
     isConnecting = false;
     lastFailureTime = Date.now();
-    console.warn("MongoDB connection failed; falling back to in-memory store for 30s:", (error as Error).message);
+    console.warn("MongoDB connection failed; falling back to in-memory store:", (error as Error).message);
     return {
       isConnected: false,
       mode: "in_memory",
