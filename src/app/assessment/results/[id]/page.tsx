@@ -56,30 +56,9 @@ export default function AssessmentResultsPage() {
       try {
         setLoading(true);
         setError(null);
-        setProcessingStage("Checking assessment records...");
-
-        // 1. First, check if assessment and report already exist
-        const getRes = await fetch(`/api/assessments/${id}`);
-        const getData = await getRes.json();
-
-        if (getRes.ok && getData.success && getData.report) {
-          // Report already computed! Render cached results without re-analyzing
-          setAssessment(getData.assessment);
-          setReport(getData.report);
-          setFindings(getData.report.findings || []);
-          setNextSteps(getData.report.recommendedNextSteps || []);
-          setIsAiEnhanced(getData.report.isAiEnhanced || false);
-          setAiProvider(
-            getData.report.isAiEnhanced
-              ? "IOMETE Grounded AI / Google Gemini"
-              : "Deterministic Rules Engine"
-          );
-          setLoading(false);
-          return;
-        }
-
-        // 2. If no report exists yet, run analysis
         setProcessingStage("Evaluating requirements against verified IOMETE capabilities...");
+
+        // Run single optimized analysis (checks cache first, generates instantaneously)
         const analyzeRes = await fetch(`/api/assessments/${id}/analyze`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -91,20 +70,13 @@ export default function AssessmentResultsPage() {
           throw new Error(analyzeData.error || "Failed to analyze assessment");
         }
 
+        setAssessment(analyzeData.assessment || null);
+        setReport(analyzeData.report || null);
         setFindings(analyzeData.findings || []);
         setNextSteps(analyzeData.nextSteps || []);
         setConflicts(analyzeData.conflicts || []);
         setIsAiEnhanced(analyzeData.isAiEnhanced || false);
         setAiProvider(analyzeData.aiProvider || "deterministic_engine");
-
-        // Fetch refreshed assessment and report
-        const refreshRes = await fetch(`/api/assessments/${id}`);
-        const refreshData = await refreshRes.json();
-        if (refreshData.success) {
-          setAssessment(refreshData.assessment);
-          setReport(refreshData.report);
-        }
-
         setLoading(false);
       } catch (err) {
         setLoading(false);

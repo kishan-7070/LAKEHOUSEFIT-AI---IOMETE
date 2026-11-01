@@ -37,7 +37,7 @@ export async function enhanceAssessmentWithAi(
   // Provider-specific default models
   const rawModel = process.env.AI_MODEL?.trim();
   const geminiModel = provider === "gemini" 
-    ? (rawModel && !rawModel.startsWith("gpt") ? rawModel : "gemini-1.5-flash")
+    ? (rawModel && !rawModel.startsWith("gpt") ? rawModel : "gemini-3.5-flash-lite")
     : "";
   const openAiModel = provider === "openai"
     ? (rawModel && !rawModel.startsWith("gemini") ? rawModel : "gpt-4o-mini")
@@ -80,41 +80,39 @@ Keep the tone objective, consultative, and evidence-focused.
 
     // 1. Google Gemini via secure header authentication (no key in URL)
     if (provider === "gemini") {
-      const modelsToTry = [geminiModel, "gemini-1.5-flash", "gemini-flash-latest"];
+      const activeModel = geminiModel || "gemini-3.5-flash-lite";
 
-      for (const m of modelsToTry) {
-        try {
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-goog-api-key": apiKey,
-              },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { maxOutputTokens: 600, temperature: 0.2 },
-              }),
-              signal: AbortSignal.timeout(6000),
-            }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text && text.trim().length > 50) {
-              return {
-                isAiEnhanced: true,
-                executiveSummary: text.trim(),
-                enhancedExplanations: {},
-                providerName: `Google Gemini (${m})`,
-              };
-            }
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey,
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { maxOutputTokens: 600, temperature: 0.2 },
+            }),
+            signal: AbortSignal.timeout(3500),
           }
-        } catch {
-          // Continue to next model if this one fails
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text && text.trim().length > 50) {
+            return {
+              isAiEnhanced: true,
+              executiveSummary: text.trim(),
+              enhancedExplanations: {},
+              providerName: `Google Gemini (${activeModel})`,
+            };
+          }
         }
+      } catch (err) {
+        console.warn("Gemini AI skipped for speed; using instant deterministic report:", (err as Error).message);
       }
     }
 

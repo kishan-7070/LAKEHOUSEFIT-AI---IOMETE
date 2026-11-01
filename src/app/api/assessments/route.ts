@@ -48,14 +48,12 @@ export async function POST(req: NextRequest) {
     // Save in memory store
     inMemoryStore.saveAssessment(assessment);
 
-    // If MongoDB is configured, persist to database as well
+    // If MongoDB is configured, persist to database asynchronously (non-blocking for instant wizard UI response)
     const dbStatus = await connectToDatabase();
     if (dbStatus.isConnected) {
-      try {
-        await AssessmentModel.create(assessment);
-      } catch (dbErr) {
+      AssessmentModel.create(assessment).catch(dbErr => {
         console.warn("MongoDB write error, persisted in memory:", (dbErr as Error).message);
-      }
+      });
     }
 
     return NextResponse.json(

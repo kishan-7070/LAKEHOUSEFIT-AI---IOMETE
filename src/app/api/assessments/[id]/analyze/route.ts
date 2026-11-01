@@ -96,6 +96,8 @@ export async function POST(
           success: true,
           assessmentId: id,
           reportId: cachedReport.id,
+          assessment: existingAssessment,
+          report: cachedReport,
           findings: cachedReport.findings,
           audit: auditFindingsAccuracy(cachedReport.findings),
           conflicts: [],
@@ -205,16 +207,16 @@ export async function POST(
     };
     inMemoryStore.saveAssessment(updatedAssessment);
 
-    // 11. Save in MongoDB if connected
+    // 11. Save in MongoDB if connected (non-blocking parallel write for instant client response)
     const dbStatus = await connectToDatabase();
     if (dbStatus.isConnected) {
-      try {
-        await ReportModel.findOneAndUpdate(
+      Promise.all([
+        ReportModel.findOneAndUpdate(
           { assessmentId: id },
           { ...baseReport, ownerId },
           { upsert: true, new: true }
-        );
-        await AssessmentModel.findOneAndUpdate(
+        ),
+        AssessmentModel.findOneAndUpdate(
           { id },
           {
             ownerId,
@@ -225,16 +227,18 @@ export async function POST(
             updatedAt: new Date().toISOString(),
           },
           { upsert: true }
-        );
-      } catch (dbErr) {
+        ),
+      ]).catch(dbErr => {
         console.warn("MongoDB write failed during analyze:", (dbErr as Error).message);
-      }
+      });
     }
 
     return NextResponse.json({
       success: true,
       assessmentId: id,
       reportId: baseReport.id,
+      assessment: updatedAssessment,
+      report: baseReport,
       findings,
       audit: auditResult,
       conflicts,

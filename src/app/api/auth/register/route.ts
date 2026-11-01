@@ -75,13 +75,11 @@ export async function POST(req: NextRequest) {
     // Save in memory store
     inMemoryStore.saveUser(newUser);
 
-    // Save in MongoDB if connected
+    // Save in MongoDB if connected (non-blocking for instant registration response)
     if (dbStatus.isConnected) {
-      try {
-        await UserModel.create(newUser);
-      } catch (dbErr) {
+      UserModel.create(newUser).catch(dbErr => {
         console.warn("MongoDB write error during register; persisted in-memory:", (dbErr as Error).message);
-      }
+      });
     }
 
     // Sign safe token (avatar is NOT stored in the token cookie to prevent exceeding 4KB cookie limit)
